@@ -1,4 +1,4 @@
-package shortener
+package main
 
 import (
 	"net/http"
@@ -7,11 +7,14 @@ import (
 )
 
 
-func Run() error {
+func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(`/`, api.AddLink)
 	mux.HandleFunc(`/{id}`, api.GetLink)
 
-	return http.ListenAndServe(`:8080`, mux)
+	err := http.ListenAndServe(`:8080`, mux)
+	if err != nil {
+		panic(err)
+	}
 }

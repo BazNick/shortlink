@@ -28,9 +28,16 @@ func AddLink(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var scheme string
+    if req.TLS != nil {
+        scheme = "https://"
+    } else {
+        scheme = "http://"
+    }
+
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = req.URL.Host + req.Host + "/" + randStr
+		hashLink = scheme + req.Host + "/" + randStr
 	)
 
 	entities.Hash.AddHash(randStr, string(body))
