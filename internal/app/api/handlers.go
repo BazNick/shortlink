@@ -21,6 +21,7 @@ func AddLink(res http.ResponseWriter, req *http.Request) {
 		http.Error(res, apperr.ErrBodyRead, http.StatusBadRequest)
 		return
 	}
+	req.Body.Close()
 
 	alreadyExst := entities.CheckValExists(entities.Hash, string(body))
 	if alreadyExst {
