@@ -3,67 +3,67 @@ package handlers
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/functions"
+	"github.com/gin-gonic/gin"
 )
 
-func AddLink(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(res, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
+func AddLink(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		http.Error(res, apperr.ErrBodyRead, http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrBodyRead, http.StatusBadRequest)
 		return
 	}
-	req.Body.Close()
+	c.Request.Body.Close()
 
 	alreadyExst := entities.CheckValExists(entities.Hash, string(body))
 	if alreadyExst {
-		http.Error(res, apperr.ErrLinkExists, http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
 		return
 	}
 
 	var scheme string
-    if req.TLS != nil {
-        scheme = "https://"
-    } else {
-        scheme = "http://"
-    }
+	if c.Request.TLS != nil {
+		scheme = "https://"
+	} else {
+		scheme = "http://"
+	}
 
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = scheme + req.Host + "/" + randStr
+		hashLink = scheme + c.Request.Host + "/" + randStr
 	)
 
 	entities.Hash.AddHash(randStr, string(body))
 
-	res.Header().Set("content-type", "text/plain")
-	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(hashLink))
+	c.Writer.Header().Set("content-type", "text/plain")
+	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write([]byte(hashLink))
 }
 
-func GetLink(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		http.Error(res, apperr.ErrOnlyGET, http.StatusMethodNotAllowed)
+func GetLink(c *gin.Context) {
+	if c.Request.Method != http.MethodGet {
+		http.Error(c.Writer, apperr.ErrOnlyGET, http.StatusMethodNotAllowed)
 		return
 	}
 
 	var (
-		id     = strings.TrimPrefix(req.URL.Path, "/")
+		id     = c.Param("id")
 		exists = entities.Hash.GetHash(id)
 	)
 
 	if exists == "" {
-		http.Error(res, apperr.ErrLinkNotFound, http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrLinkNotFound, http.StatusBadRequest)
 		return
 	}
 
-	res.Header().Set("Location", exists)
-	res.WriteHeader(http.StatusTemporaryRedirect)
+	c.Writer.Header().Set("Location", exists)
+	c.Writer.WriteHeader(http.StatusTemporaryRedirect)
 }

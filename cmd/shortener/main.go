@@ -1,20 +1,16 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/BazNick/shortlink/internal/app/handlers"
+	"github.com/gin-gonic/gin"
 )
 
 
 func main() {
-	mux := http.NewServeMux()
+	router := gin.Default()
 
-	mux.HandleFunc(`/`, handlers.AddLink)
-	mux.HandleFunc(`/{id}`, handlers.GetLink)
+    router.GET("/:id", handlers.GetLink)
+    router.POST("/", handlers.AddLink)
 
-	err := http.ListenAndServe(`:8080`, mux)
-	if err != nil {
-		panic(err)
-	}
+    router.Run(":8080")
 }

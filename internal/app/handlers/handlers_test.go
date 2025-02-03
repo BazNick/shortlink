@@ -9,6 +9,7 @@ import (
 	"github.com/BazNick/shortlink/internal/app/apperr"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/functions"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,11 +45,15 @@ func TestAddLink(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			router := gin.Default()
+			router.POST("/", AddLink)
+
 			data := strings.NewReader(test.want.url)
 			request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", data)
 
 			w := httptest.NewRecorder()
-			AddLink(w, request)
+
+			router.ServeHTTP(w, request)
 
 			res := w.Result()
 
@@ -98,11 +103,13 @@ func TestGetLink(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			router := gin.Default()
+			router.GET("/:id", GetLink)
+
 			request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/"+test.want.shortURL, nil)
 
 			w := httptest.NewRecorder()
-			GetLink(w, request)
-
+			router.ServeHTTP(w, request)
 			res := w.Result()
 
 			assert.Equal(t, test.want.expectedCode, res.StatusCode)
