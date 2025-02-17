@@ -5,12 +5,20 @@ import (
 	"net/http"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
-	"github.com/BazNick/shortlink/internal/app/entities"
+	"github.com/BazNick/shortlink/internal/app/storage"
 	"github.com/BazNick/shortlink/internal/app/functions"
 	"github.com/gin-gonic/gin"
 )
 
-func AddLink(c *gin.Context) {
+type URLHandler struct {
+	storage storage.Storage
+}
+
+func NewURLHandler(storage storage.Storage) *URLHandler {
+	return &URLHandler{storage: storage}
+}
+
+func (handler *URLHandler) AddLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
 		return
@@ -23,7 +31,7 @@ func AddLink(c *gin.Context) {
 	}
 	c.Request.Body.Close()
 
-	alreadyExst := entities.CheckValExists(entities.Hash, string(body))
+	alreadyExst := handler.storage.CheckValExists(string(body))
 	if alreadyExst {
 		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
 		return
@@ -41,14 +49,14 @@ func AddLink(c *gin.Context) {
 		hashLink = scheme + c.Request.Host + "/" + randStr
 	)
 
-	entities.Hash.AddHash(randStr, string(body))
+	handler.storage.AddHash(randStr, string(body))
 
 	c.Writer.Header().Set("content-type", "text/plain")
 	c.Writer.WriteHeader(http.StatusCreated)
 	c.Writer.Write([]byte(hashLink))
 }
 
-func GetLink(c *gin.Context) {
+func (handler *URLHandler) GetLink(c *gin.Context) {
 	if c.Request.Method != http.MethodGet {
 		http.Error(c.Writer, apperr.ErrOnlyGET, http.StatusMethodNotAllowed)
 		return
@@ -56,7 +64,7 @@ func GetLink(c *gin.Context) {
 
 	var (
 		id     = c.Param("id")
-		exists = entities.Hash.GetHash(id)
+		exists = handler.storage.GetHash(id)
 	)
 
 	if exists == "" {
