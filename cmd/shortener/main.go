@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/BazNick/shortlink/cmd/config"
-	"github.com/BazNick/shortlink/internal/app/handlers"
+	"github.com/BazNick/shortlink/cmd/logger"
 	"github.com/BazNick/shortlink/internal/app/entities"
+	"github.com/BazNick/shortlink/internal/app/handlers"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,6 +12,7 @@ func main() {
 	conf := config.GetCLParams()
 
 	router := gin.Default()
+	router.Use(logger.WithLogging())
 
 	hashDict := entities.NewHashDict()
 	urlHandler := handlers.NewURLHandler(hashDict)
