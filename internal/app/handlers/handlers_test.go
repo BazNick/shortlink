@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -142,3 +143,87 @@ func TestGetLink(t *testing.T) {
 		})
 	}
 }
+
+func TestPostJSONLink(t *testing.T) {
+	storage := entities.NewHashDict()
+	handler := NewURLHandler(storage)
+
+	type want struct {
+		method       string
+		body         string
+		expectedCode int
+		expectResult bool
+	}
+	tests := []struct {
+		name string
+		want want
+	}{
+		{
+			name: "Test POST JSON success",
+			want: want{
+				method:       http.MethodPost,
+				body:         `{"url": "https://yandex.ru"}`,
+				expectedCode: http.StatusCreated,
+				expectResult: true,
+			},
+		},
+		{
+			name: "Test POST fail (invalid JSON)",
+			want: want{
+				method:       http.MethodPost,
+				body:         `{"url":}`,
+				expectedCode: http.StatusBadRequest,
+				expectResult: false,
+			},
+		},
+		{
+			name: "Test POST fail (duplicate URL)",
+			want: want{
+				method:       http.MethodPost,
+				body:         `{"url": "https://duplicate.ru"}`,
+				expectedCode: http.StatusCreated,
+				expectResult: true,
+			},
+		},
+		{
+			name: "Test POST fail (URL already exists)",
+			want: want{
+				method:       http.MethodPost,
+				body:         `{"url": "https://duplicate.ru"}`,
+				expectedCode: http.StatusBadRequest,
+				expectResult: false,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			router := gin.Default()
+			router.POST("/", handler.PostJSONLink)
+
+			data := strings.NewReader(test.want.body)
+			request := httptest.NewRequest(test.want.method, "http://localhost:8080/", data)
+			request.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, request)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			assert.Equal(t, test.want.expectedCode, res.StatusCode)
+
+			if test.want.expectResult {
+				body, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+
+				var resBody map[string]string
+				err = json.Unmarshal(body, &resBody)
+				require.NoError(t, err)
+
+				assert.Contains(t, resBody["result"], "http://localhost:8080/")
+			}
+		})
+	}
+}
+

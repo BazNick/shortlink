@@ -19,6 +19,7 @@ func main() {
 
 	router.GET("/:id", urlHandler.GetLink)
 	router.POST("/", urlHandler.AddLink)
+	router.POST("/api/shorten", urlHandler.PostJSONLink)
 
 	router.Run(conf.Address)
 }
