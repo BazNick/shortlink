@@ -19,8 +19,8 @@ type (
 	}
 
 	FileLinks struct {
-		ShortUrl    string `json:"short_url"`
-		OriginalUrl string `json:"original_url"`
+		ShortURL    string `json:"short_url"`
+		OriginalURL string `json:"original_url"`
 	}
 
 	URLHandler struct {
@@ -120,7 +120,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		handler.storage.AddHash(res.ShortUrl, res.OriginalUrl)
+		handler.storage.AddHash(res.ShortURL, res.OriginalURL)
 	}
 
 	alreadyExst := handler.storage.CheckValExists(link.Link)
@@ -151,7 +151,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	}
 	defer writer.Close()
 
-	data, errMarshal := json.Marshal(FileLinks{ShortUrl: randStr, OriginalUrl: link.Link})
+	data, errMarshal := json.Marshal(FileLinks{ShortURL: randStr, OriginalURL: link.Link})
 	if errMarshal != nil {
 		http.Error(c.Writer, errMarshal.Error(), http.StatusBadRequest)
 		return
