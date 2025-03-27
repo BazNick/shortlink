@@ -17,7 +17,7 @@ import (
 
 func TestAddLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage)
+	handler := NewURLHandler(storage, "test.json")
 
 	type want struct {
 		method       string
@@ -74,7 +74,7 @@ func TestAddLink(t *testing.T) {
 
 func TestGetLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage)
+	handler := NewURLHandler(storage, "test.json")
 
 	randomStr := functions.RandSeq(8)
 	originalURL := "https://yandex.ru"
@@ -146,7 +146,7 @@ func TestGetLink(t *testing.T) {
 
 func TestPostJSONLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage)
+	handler := NewURLHandler(storage, "test.json")
 
 	type want struct {
 		method       string

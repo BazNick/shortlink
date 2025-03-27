@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Address string `env:"ADDRESS"`
-	BaseURL string `env:"BASE_URL"`
+	Address  string `env:"ADDRESS"`
+	BaseURL  string `env:"BASE_URL"`
+	FilePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func GetCLParams() Config {
@@ -27,6 +28,7 @@ func GetCLParams() Config {
 
 	flag.StringVar(&config.Address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base URL")
+	flag.StringVar(&config.FilePath, "f", "./data.json", "путь до файла")
 
 	flag.Parse()
 

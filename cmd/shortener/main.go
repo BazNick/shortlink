@@ -16,7 +16,7 @@ func main() {
 	router.Use(logger.WithLogging(), compress.GzipHandle())
 
 	hashDict := entities.NewHashDict()
-	urlHandler := handlers.NewURLHandler(hashDict)
+	urlHandler := handlers.NewURLHandler(hashDict, conf.FilePath)
 
 	router.GET("/:id", urlHandler.GetLink)
 	router.POST("/", urlHandler.AddLink)

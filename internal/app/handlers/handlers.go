@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
 	"github.com/BazNick/shortlink/internal/app/functions"
@@ -11,16 +13,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type JSONLink struct {
-	Link string `json:"url"`
-}
+type (
+	JSONLink struct {
+		Link string `json:"url"`
+	}
 
-type URLHandler struct {
-	storage storage.Storage
-}
+	FileLinks struct {
+		ShortUrl    string `json:"short_url"`
+		OriginalUrl string `json:"original_url"`
+	}
 
-func NewURLHandler(storage storage.Storage) *URLHandler {
-	return &URLHandler{storage: storage}
+	URLHandler struct {
+		storage storage.Storage
+		path    string
+	}
+)
+
+func NewURLHandler(storage storage.Storage, path string) *URLHandler {
+	return &URLHandler{storage: storage, path: path}
 }
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
@@ -88,12 +98,31 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	}
 
 	var link JSONLink
-		
+
 	if err := json.NewDecoder(c.Request.Body).Decode(&link); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
-	
+	// загружаем все ссылки в память из файла
+	reader, errOpenFile := os.OpenFile(handler.path, os.O_RDONLY|os.O_CREATE, 0666)
+	if errOpenFile != nil {
+		http.Error(c.Writer, errOpenFile.Error(), http.StatusBadRequest)
+		return
+	}
+	defer reader.Close()
+
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+		var res FileLinks
+		err := json.Unmarshal(scanner.Bytes(), &res)
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		handler.storage.AddHash(res.ShortUrl, res.OriginalUrl)
+	}
+
 	alreadyExst := handler.storage.CheckValExists(link.Link)
 	if alreadyExst {
 		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
@@ -113,6 +142,28 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	)
 
 	handler.storage.AddHash(randStr, link.Link)
+
+	// пишем ссылку в файл
+	writer, errFile := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if errFile != nil {
+		http.Error(c.Writer, errFile.Error(), http.StatusBadRequest)
+		return
+	}
+	defer writer.Close()
+
+	data, errMarshal := json.Marshal(FileLinks{ShortUrl: randStr, OriginalUrl: link.Link})
+	if errMarshal != nil {
+		http.Error(c.Writer, errMarshal.Error(), http.StatusBadRequest)
+		return
+	}
+
+	data = append(data, '\n')
+
+	_, errWriteFile := writer.Write(data)
+	if errWriteFile != nil {
+		http.Error(c.Writer, errWriteFile.Error(), http.StatusBadRequest)
+		return
+	}
 
 	resp, err := json.Marshal(map[string]string{"result": hashLink})
 	if err != nil {
