@@ -1,6 +1,6 @@
 module github.com/BazNick/shortlink
 
-go 1.22.1
+go 1.23.0
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
