@@ -162,7 +162,7 @@ func TestPostJSONLink(t *testing.T) {
 			name: "Test POST JSON success",
 			want: want{
 				method:       http.MethodPost,
-				body:         `{"url": "https://yandex.ru"}`,
+				body:         `{"url": "https://vk.ru"}`,
 				expectedCode: http.StatusCreated,
 				expectResult: true,
 			},
@@ -177,10 +177,10 @@ func TestPostJSONLink(t *testing.T) {
 			},
 		},
 		{
-			name: "Test POST fail (duplicate URL)",
+			name: "Test POST fail (duplicate1 URL)",
 			want: want{
 				method:       http.MethodPost,
-				body:         `{"url": "https://duplicate.ru"}`,
+				body:         `{"url": "https://duplicate1.ru"}`,
 				expectedCode: http.StatusCreated,
 				expectResult: true,
 			},
@@ -189,7 +189,7 @@ func TestPostJSONLink(t *testing.T) {
 			name: "Test POST fail (URL already exists)",
 			want: want{
 				method:       http.MethodPost,
-				body:         `{"url": "https://duplicate.ru"}`,
+				body:         `{"url": "https://duplicate1.ru"}`,
 				expectedCode: http.StatusBadRequest,
 				expectResult: false,
 			},

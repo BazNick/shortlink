@@ -53,6 +53,24 @@ func NewURLHandler(storage storage.Storage, path string) *URLHandler {
 	return handler
 }
 
+func (handler *URLHandler) saveToFile(shortURL, originalURL string) error {
+	writer, err := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+
+	data, err := json.Marshal(FileLinks{ShortURL: shortURL, OriginalURL: originalURL})
+	if err != nil {
+		return err
+	}
+
+	data = append(data, '\n')
+
+	_, err = writer.Write(data)
+	return err
+}
+
 func (handler *URLHandler) AddLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
@@ -85,6 +103,10 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 	)
 
 	handler.storage.AddHash(randStr, string(body))
+	if err := handler.saveToFile(randStr, string(body)); err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	c.Writer.Header().Set("content-type", "text/plain")
 	c.Writer.WriteHeader(http.StatusCreated)
@@ -119,14 +141,12 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	}
 
 	var link JSONLink
-
 	if err := json.NewDecoder(c.Request.Body).Decode(&link); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	alreadyExst := handler.storage.CheckValExists(link.Link)
-	if alreadyExst {
+	if handler.storage.CheckValExists(link.Link) {
 		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
 		return
 	}
@@ -144,26 +164,8 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	)
 
 	handler.storage.AddHash(randStr, link.Link)
-
-	// пишем ссылку в файл
-	writer, errFile := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if errFile != nil {
-		http.Error(c.Writer, errFile.Error(), http.StatusBadRequest)
-		return
-	}
-	defer writer.Close()
-
-	data, errMarshal := json.Marshal(FileLinks{ShortURL: randStr, OriginalURL: link.Link})
-	if errMarshal != nil {
-		http.Error(c.Writer, errMarshal.Error(), http.StatusBadRequest)
-		return
-	}
-
-	data = append(data, '\n')
-
-	_, errWriteFile := writer.Write(data)
-	if errWriteFile != nil {
-		http.Error(c.Writer, errWriteFile.Error(), http.StatusBadRequest)
+	if err := handler.saveToFile(randStr, link.Link); err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -175,5 +177,5 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 
 	c.Writer.Header().Set("content-type", "application/json")
 	c.Writer.WriteHeader(http.StatusCreated)
-	c.Writer.Write([]byte(resp))
+	c.Writer.Write(resp)
 }
