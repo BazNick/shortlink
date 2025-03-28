@@ -41,5 +41,9 @@ func GzipHandle() gin.HandlerFunc {
 		}
 
 		c.Next()
+
+		if c.Writer.Status() >= 300 && c.Writer.Status() < 400 {
+			return
+		}
 	})
 }
