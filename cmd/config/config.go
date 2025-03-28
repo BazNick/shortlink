@@ -28,7 +28,7 @@ func GetCLParams() Config {
 
 	flag.StringVar(&config.Address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base URL")
-	flag.StringVar(&config.FilePath, "f", "./data.json", "путь до файла")
+	flag.StringVar(&config.FilePath, "f", "data.json", "путь до файла")
 
 	flag.Parse()
 

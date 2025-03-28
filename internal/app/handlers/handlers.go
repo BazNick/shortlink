@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -30,7 +31,26 @@ type (
 )
 
 func NewURLHandler(storage storage.Storage, path string) *URLHandler {
-	return &URLHandler{storage: storage, path: path}
+	handler := &URLHandler{storage: storage, path: path}
+
+	// загружаем все ссылки в память из файла
+	reader, errOpenFile := os.OpenFile(handler.path, os.O_RDONLY|os.O_CREATE, 0666)
+	if errOpenFile != nil {
+		log.Fatalf("Ошибка при открытии файла %s: %v", path, errOpenFile)
+	}
+	defer reader.Close()
+
+	scanner := bufio.NewScanner(reader)
+
+	for scanner.Scan() {
+		var res FileLinks
+		err := json.Unmarshal(scanner.Bytes(), &res)
+		if err != nil {
+			log.Fatalf("Ошибка при открытии файла %s: %v", path, err)
+		}
+		storage.AddHash(res.ShortURL, res.OriginalURL)
+	}
+	return handler
 }
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
@@ -103,25 +123,6 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	if err := json.NewDecoder(c.Request.Body).Decode(&link); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
-	}
-	// загружаем все ссылки в память из файла
-	reader, errOpenFile := os.OpenFile(handler.path, os.O_RDONLY|os.O_CREATE, 0666)
-	if errOpenFile != nil {
-		http.Error(c.Writer, errOpenFile.Error(), http.StatusBadRequest)
-		return
-	}
-	defer reader.Close()
-
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		var res FileLinks
-		err := json.Unmarshal(scanner.Bytes(), &res)
-		if err != nil {
-			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-			return
-		}
-		handler.storage.AddHash(res.ShortURL, res.OriginalURL)
 	}
 
 	alreadyExst := handler.storage.CheckValExists(link.Link)
