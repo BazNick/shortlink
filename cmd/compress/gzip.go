@@ -2,7 +2,6 @@ package compress
 
 import (
 	"compress/gzip"
-	"io"
 	"strings"
 	"net/http"
 
@@ -10,42 +9,43 @@ import (
 )
 
 type gzipWriter struct {
-	gin.ResponseWriter
-	Writer io.Writer
+    gin.ResponseWriter
+    writer *gzip.Writer
 }
 
-func (w gzipWriter) Write(b []byte) (int, error) {
-	return w.Writer.Write(b)
+func (g *gzipWriter) Write(data []byte) (int, error) {
+    return g.writer.Write(data)
 }
 
 func GzipHandle() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.GetHeader("Content-Encoding") == "gzip" {
-			gz, err := gzip.NewReader(c.Request.Body)
-			if err != nil {
-				c.String(http.StatusBadRequest, "Ошибка декомпрессии запроса")
-				c.Abort()
-				return
-			}
-			defer gz.Close()
-			c.Request.Body = gz
-		}
+    return func(c *gin.Context) {
+        if strings.Contains(c.GetHeader("Content-Encoding"), "gzip") {
+            gz, err := gzip.NewReader(c.Request.Body)
+            if err != nil {
+                c.AbortWithError(http.StatusBadRequest, err)
+                return
+            }
+            defer gz.Close()
+            c.Request.Body = gz
+        }
 
-		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			c.Next()
-			return
-		}
+        if strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+            gz := gzip.NewWriter(c.Writer)
+            defer gz.Close()
 
-		c.Next()
-		contentType := c.Writer.Header().Get("Content-Type")
-		if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
-			return
-		}
+            originalWriter := c.Writer
+            c.Writer = &gzipWriter{
+                ResponseWriter: originalWriter,
+                writer:        gz,
+            }
 
-		gz := gzip.NewWriter(c.Writer)
-		defer gz.Close()
+            c.Header("Content-Encoding", "gzip")
+            c.Header("Vary", "Accept-Encoding")
+            c.Header("Content-Type", c.Writer.Header().Get("Content-Type"))
+            c.Next()
 
-		c.Writer.Header().Set("Content-Encoding", "gzip")
-		c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
-	}
+            return
+        }
+        c.Next()
+    }
 }
