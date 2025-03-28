@@ -19,7 +19,9 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle() gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
-		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
+		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") ||
+			!strings.Contains(c.GetHeader("content-type"), "application/json") ||
+			!strings.Contains(c.GetHeader("content-type"), "text/html") {
 			c.Next()
 			return
 		}
