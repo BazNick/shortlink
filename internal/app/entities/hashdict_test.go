@@ -7,150 +7,141 @@ import (
 )
 
 func TestCheckValExists(t *testing.T) {
-	type args struct {
-		hd   HashDict
-		link string
-	}
 	tests := []struct {
 		name string
-		args args
+		hd   HashDict
+		link string
 		want bool
 	}{
 		{
 			name: "Value exists in the hash dictionary",
-			args: args{
-				hd: HashDict{
+			hd: HashDict{
+				Dict: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 				},
-				link: "value2",
 			},
+			link: "value2",
 			want: true,
 		},
 		{
 			name: "Value does not exist in the hash dictionary",
-			args: args{
-				hd: HashDict{
+			hd: HashDict{
+				Dict: map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 				},
-				link: "nonexistent_value",
 			},
+			link: "nonexistent_value",
 			want: false,
 		},
 		{
 			name: "Empty hash dictionary",
-			args: args{
-				hd:   HashDict{},
-				link: "any_value",
+			hd: HashDict{
+				Dict: map[string]string{},
 			},
+			link: "any_value",
 			want: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := CheckValExists(test.args.hd, test.args.link)
+			got := test.hd.CheckValExists(test.link)
 			require.Equal(t, test.want, got)
 		})
 	}
 }
 
 func TestHashDict_AddHash(t *testing.T) {
-	type args struct {
-		hash string
-		link string
-	}
 	tests := []struct {
 		name string
 		h    HashDict
-		args args
+		hash string
+		link string
 	}{
 		{
 			name: "Adding a new key-value pair to an empty hash dictionary",
-			h:    HashDict{},
-			args: args{
-				hash: "new_key",
-				link: "new_value",
+			h: HashDict{
+				Dict: map[string]string{},
 			},
+			hash: "new_key",
+			link: "new_value",
 		},
 		{
 			name: "Adding a new key-value pair to a non-empty hash dictionary",
 			h: HashDict{
-				"existing_key": "existing_value",
+				Dict: map[string]string{
+					"existing_key": "existing_value",
+				},
 			},
-			args: args{
-				hash: "another_new_key",
-				link: "another_new_value",
-			},
+			hash: "another_new_key",
+			link: "another_new_value",
 		},
 		{
 			name: "Overwriting existing value with a new one",
 			h: HashDict{
-				"existing_key": "old_value",
+				Dict: map[string]string{
+					"existing_key": "old_value",
+				},
 			},
-			args: args{
-				hash: "existing_key",
-				link: "updated_value",
-			},
+			hash: "existing_key",
+			link: "updated_value",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.h.AddHash(tt.args.hash, tt.args.link)
-			require.Contains(t, tt.h, tt.args.hash)
-			require.Equal(t, tt.h[tt.args.hash], tt.args.link)
+			tt.h.AddHash(tt.hash, tt.link)
+			require.Contains(t, tt.h.Dict, tt.hash)
+			require.Equal(t, tt.link, tt.h.Dict[tt.hash])
 		})
 	}
 }
 
 func TestHashDict_GetHash(t *testing.T) {
-	type args struct {
-		hash string
-	}
 	tests := []struct {
 		name string
 		h    HashDict
-		args args
+		hash string
 		want string
 	}{
 		{
 			name: "Getting value for existing key",
 			h: HashDict{
-				"key1": "value1",
-				"key2": "value2",
+				Dict: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
 			},
-			args: args{
-				hash: "key1",
-			},
+			hash: "key1",
 			want: "value1",
 		},
 		{
 			name: "Getting value for non-existing key",
 			h: HashDict{
-				"key1": "value1",
-				"key2": "value2",
+				Dict: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
 			},
-			args: args{
-				hash: "non_existing_key",
-			},
+			hash: "non_existing_key",
 			want: "",
 		},
 		{
 			name: "Getting value from an empty hash dictionary",
-			h:    HashDict{},
-			args: args{
-				hash: "any_key",
+			h: HashDict{
+				Dict: map[string]string{},
 			},
+			hash: "any_key",
 			want: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.h.GetHash(tt.args.hash)
-			require.Equal(t, got, tt.want)
+			got := tt.h.GetHash(tt.hash)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

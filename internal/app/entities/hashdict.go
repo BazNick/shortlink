@@ -1,22 +1,28 @@
 package entities
 
-type HashDict map[string]string
-
-var Hash = make(HashDict, 1)
-
-func (h HashDict) AddHash(hash, link string) {
-	h[hash] = link
+type HashDict struct {
+	Dict map[string]string
 }
 
-func (h HashDict) GetHash(hash string) string {
-	if val, ok := h[hash]; ok {
+func NewHashDict() *HashDict {
+	return &HashDict{
+		Dict: make(map[string]string),
+	}
+}
+
+func (hasdDict *HashDict) AddHash(hash, link string) {
+	hasdDict.Dict[hash] = link
+}
+
+func (hasdDict *HashDict) GetHash(hash string) string {
+	if val, ok := hasdDict.Dict[hash]; ok {
 		return val
 	}
 	return ""
 }
 
-func CheckValExists(hd HashDict, link string) bool {
-	for _, v := range hd {
+func (hasdDict *HashDict) CheckValExists(link string) bool {
+	for _, v := range hasdDict.Dict {
 		if v == link {
 			return true
 		}
