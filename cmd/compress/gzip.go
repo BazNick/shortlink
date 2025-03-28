@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"strings"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,33 +18,32 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 }
 
 func GzipHandle() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.GetHeader("Content-Encoding") == "gzip" {
-			gz, err := gzip.NewReader(c.Request.Body)
+	return gin.HandlerFunc(func(c *gin.Context) {
+		if c.GetHeader("Accept-Encoding") == "gzip" {
+
+			contentType := c.GetHeader("Content-Type")
+			if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
+				return
+			}
+
+			gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
 			if err != nil {
-				c.String(http.StatusBadRequest, "Ошибка декомпрессии запроса")
-				c.Abort()
+				io.WriteString(c.Writer, err.Error())
 				return
 			}
 			defer gz.Close()
-			c.Request.Body = gz
+
+			c.Writer.Header().Set("Content-Encoding", "gzip")
+
+			c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
+
+			c.Next()
 		}
 
-		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") {
-			c.Next()
+		if c.Writer.Status() >= 300 && c.Writer.Status() < 400 {
 			return
 		}
 
 		c.Next()
-		contentType := c.Writer.Header().Get("Content-Type")
-		if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
-			return
-		}
-
-		gz := gzip.NewWriter(c.Writer)
-		defer gz.Close()
-
-		c.Writer.Header().Set("Content-Encoding", "gzip")
-		c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
-	}
+	})
 }
