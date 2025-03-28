@@ -40,7 +40,6 @@ func GzipHandle() gin.HandlerFunc {
             }
 
             c.Header("Content-Encoding", "gzip")
-            c.Header("Vary", "Accept-Encoding")
             c.Header("Content-Type", c.Writer.Header().Get("Content-Type"))
             c.Next()
 
