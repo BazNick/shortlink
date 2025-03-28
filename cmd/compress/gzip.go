@@ -19,27 +19,26 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle() gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
-		if !strings.Contains(c.GetHeader("Accept-Encoding"), "gzip") ||
-			!strings.Contains(c.GetHeader("Content-Type"), "application/json") ||
-			!strings.Contains(c.GetHeader("Content-Type"), "text/html") {
+		if c.GetHeader("Accept-Encoding") == "gzip" {
+
+			contentType := c.GetHeader("Content-Type")
+			if !(strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "text/html")) {
+				return
+			}
+
+			gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
+			if err != nil {
+				io.WriteString(c.Writer, err.Error())
+				return
+			}
+			defer gz.Close()
+
+			c.Writer.Header().Set("Content-Encoding", "gzip")
+
+			c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
+
 			c.Next()
-			return
 		}
-
-		if c.Writer.Status() >= 300 && c.Writer.Status() < 400 {
-            return
-        }
-
-		gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
-		if err != nil {
-			io.WriteString(c.Writer, err.Error())
-			return
-		}
-		defer gz.Close()
-
-		c.Writer.Header().Set("Content-Encoding", "gzip")
-
-		c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
 
 		c.Next()
 	})
