@@ -226,4 +226,3 @@ func TestPostJSONLink(t *testing.T) {
 		})
 	}
 }
-
