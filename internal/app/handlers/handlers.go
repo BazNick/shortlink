@@ -54,21 +54,40 @@ func NewURLHandler(storage storage.Storage, path string) *URLHandler {
 }
 
 func (handler *URLHandler) saveToFile(shortURL, originalURL string) error {
-	writer, err := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-	defer writer.Close()
+    file, err := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+    if err != nil {
+        return err
+    }
+    
+    bufWriter := bufio.NewWriter(file)
+    
+    data, err := json.Marshal(FileLinks{
+        ShortURL:    shortURL,
+        OriginalURL: originalURL,
+    })
+    if err != nil {
+        file.Close() 
+        return err
+    }
+    
+    data = append(data, '\n')
+    
+    if _, err = bufWriter.Write(data); err != nil {
+        file.Close()
+        return err
+    }
 
-	data, err := json.Marshal(FileLinks{ShortURL: shortURL, OriginalURL: originalURL})
-	if err != nil {
-		return err
-	}
-
-	data = append(data, '\n')
-
-	_, err = writer.Write(data)
-	return err
+    if err := bufWriter.Flush(); err != nil {
+        file.Close()
+        return err
+    }
+    
+    if err := file.Sync(); err != nil {
+        file.Close()
+        return err
+    }
+    
+    return file.Close()
 }
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
