@@ -66,6 +66,28 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 
 	handler.storage.AddHash(randStr, string(body))
 
+	// пишем ссылку в файл
+	writer, errFile := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if errFile != nil {
+		http.Error(c.Writer, errFile.Error(), http.StatusBadRequest)
+		return
+	}
+	defer writer.Close()
+
+	data, errMarshal := json.Marshal(FileLinks{ShortURL: randStr, OriginalURL: string(body)})
+	if errMarshal != nil {
+		http.Error(c.Writer, errMarshal.Error(), http.StatusBadRequest)
+		return
+	}
+
+	data = append(data, '\n')
+
+	_, errWriteFile := writer.Write(data)
+	if errWriteFile != nil {
+		http.Error(c.Writer, errWriteFile.Error(), http.StatusBadRequest)
+		return
+	}
+
 	c.Writer.Header().Set("content-type", "text/plain")
 	c.Writer.WriteHeader(http.StatusCreated)
 	c.Writer.Write([]byte(hashLink))
