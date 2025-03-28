@@ -88,6 +88,7 @@ func (handler *URLHandler) GetLink(c *gin.Context) {
 	}
 
 	c.Writer.Header().Set("Location", pageID)
+	c.Writer.Header().Set("Content-Type", "text/html")
 	c.Writer.WriteHeader(http.StatusTemporaryRedirect)
 }
 
