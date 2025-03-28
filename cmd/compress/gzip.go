@@ -26,6 +26,10 @@ func GzipHandle() gin.HandlerFunc {
 			return
 		}
 
+		if c.Writer.Status() >= 300 && c.Writer.Status() < 400 {
+            return
+        }
+
 		gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
 		if err != nil {
 			io.WriteString(c.Writer, err.Error())
