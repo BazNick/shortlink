@@ -6,6 +6,7 @@ import (
 	"github.com/BazNick/shortlink/cmd/logger"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/handlers"
+	"github.com/BazNick/shortlink/internal/app/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,9 +16,21 @@ func main() {
 	router := gin.Default()
 	router.Use(logger.WithLogging(), compress.GzipHandle())
 
-	hashDict := entities.NewHashDict()
+	var storage storage.Storage
+
+	switch {
+	case conf.DB != "":
+		db := entities.NewDB(conf.DB)
+		storage = db
+
+		defer db.Database.Close()
+	default:
+		hashDict := entities.NewHashDict()
+		storage = hashDict
+	}
+
 	urlHandler := handlers.NewURLHandler(
-		hashDict, 
+		storage,
 		conf.FilePath,
 		conf.DB,
 	)
