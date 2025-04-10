@@ -120,21 +120,23 @@ func (handler *URLHandler) saveToFile(shortURL, originalURL string) error {
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
-		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
+		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		http.Error(c.Writer, apperr.ErrBodyRead, http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrBodyRead.Error(), http.StatusBadRequest)
 		return
 	}
 	c.Request.Body.Close()
 
-	alreadyExst := handler.storage.CheckValExists(string(body))
-	if alreadyExst {
-		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
-		return
+	if _, ok := handler.storage.(*entities.DB); !ok {
+		alreadyExst := handler.storage.CheckValExists(string(body))
+		if alreadyExst {
+			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusConflict)
+			return
+		}
 	}
 
 	var (
@@ -142,7 +144,17 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	handler.storage.AddHash(randStr, string(body))
+	shortURL, err := handler.storage.AddHash(randStr, string(body))
+	if err != nil {
+		if err.Error() == "conflict" {
+			c.Writer.WriteHeader(http.StatusConflict)
+			c.Writer.Write([]byte(functions.SchemeAndHost(c.Request) + "/" + shortURL))
+			return
+		}
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err := handler.saveToFile(randStr, string(body)); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -155,7 +167,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 
 func (handler *URLHandler) GetLink(c *gin.Context) {
 	if c.Request.Method != http.MethodGet {
-		http.Error(c.Writer, apperr.ErrOnlyGET, http.StatusMethodNotAllowed)
+		http.Error(c.Writer, apperr.ErrOnlyGET.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -165,7 +177,7 @@ func (handler *URLHandler) GetLink(c *gin.Context) {
 	)
 
 	if pageID == "" {
-		http.Error(c.Writer, apperr.ErrLinkNotFound, http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -176,7 +188,7 @@ func (handler *URLHandler) GetLink(c *gin.Context) {
 
 func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
-		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
+		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -186,9 +198,12 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
-	if handler.storage.CheckValExists(link.Link) {
-		http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
-		return
+	if _, ok := handler.storage.(*entities.DB); !ok {
+		alreadyExst := handler.storage.CheckValExists(link.Link)
+		if alreadyExst {
+			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusConflict)
+			return
+		}
 	}
 
 	var (
@@ -196,7 +211,17 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	handler.storage.AddHash(randStr, link.Link)
+	shortURL, err := handler.storage.AddHash(randStr, link.Link)
+	if err != nil {
+		if err.Error() == "conflict" {
+			c.Writer.WriteHeader(http.StatusConflict)
+			c.Writer.Write([]byte(functions.SchemeAndHost(c.Request) + "/" + shortURL))
+			return
+		}
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err := handler.saveToFile(randStr, link.Link); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
@@ -231,7 +256,7 @@ func (handler *URLHandler) DBPingConn(c *gin.Context) {
 
 func (handler *URLHandler) BatchLinks(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
-		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
+		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -244,7 +269,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 
 	for _, link := range links {
 		if handler.storage.CheckValExists(link.OriginalURL) {
-			http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
+			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -272,7 +297,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			}
 			out[idx].CorrelationID = link.CorrelationID
 			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
-			
+
 		}
 
 		if err := tx.Commit(); err != nil {

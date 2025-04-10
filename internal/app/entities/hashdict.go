@@ -10,8 +10,9 @@ func NewHashDict() *HashDict {
 	}
 }
 
-func (hasdDict *HashDict) AddHash(hash, link string) {
+func (hasdDict *HashDict) AddHash(hash, link string) (string, error) {
 	hasdDict.Dict[hash] = link
+	return "", nil
 }
 
 func (hasdDict *HashDict) GetHash(hash string) string {
