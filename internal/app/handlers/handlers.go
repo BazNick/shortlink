@@ -137,16 +137,9 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		return
 	}
 
-	var scheme string
-	if c.Request.TLS != nil {
-		scheme = "https://"
-	} else {
-		scheme = "http://"
-	}
-
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = scheme + c.Request.Host + "/" + randStr
+		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
 	handler.storage.AddHash(randStr, string(body))
@@ -198,16 +191,9 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
-	var scheme string
-	if c.Request.TLS != nil {
-		scheme = "https://"
-	} else {
-		scheme = "http://"
-	}
-
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = scheme + c.Request.Host + "/" + randStr
+		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
 	handler.storage.AddHash(randStr, link.Link)
@@ -265,13 +251,6 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 
 	out := make([]BatchOut, len(links))
 
-	var scheme string
-	if c.Request.TLS != nil {
-		scheme = "https://"
-	} else {
-		scheme = "http://"
-	}
-
 	// если это БД
 	if _, ok := handler.storage.(*entities.DB); ok {
 		tx, err := handler.db.Begin()
@@ -292,7 +271,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			}
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = scheme + c.Request.Host + "/" + shortURL
+			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 			
 		}
 
@@ -311,7 +290,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				return
 			}
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = scheme + c.Request.Host + "/" + shortURL
+			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 		}
 	}
 
