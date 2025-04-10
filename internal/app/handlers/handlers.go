@@ -265,6 +265,13 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 
 	out := make([]BatchOut, len(links))
 
+	var scheme string
+	if c.Request.TLS != nil {
+		scheme = "https://"
+	} else {
+		scheme = "http://"
+	}
+
 	// если это БД
 	if _, ok := handler.storage.(*entities.DB); ok {
 		tx, err := handler.db.Begin()
@@ -285,7 +292,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			}
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = shortURL
+			out[idx].ShortURL = scheme + c.Request.Host + "/" + shortURL
 			
 		}
 
@@ -304,7 +311,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				return
 			}
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = shortURL
+			out[idx].ShortURL = scheme + c.Request.Host + "/" + shortURL
 		}
 	}
 
