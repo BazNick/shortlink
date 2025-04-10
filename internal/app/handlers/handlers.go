@@ -134,7 +134,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(string(body))
 		if alreadyExst {
-			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusConflict)
+			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -201,7 +201,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(link.Link)
 		if alreadyExst {
-			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusConflict)
+			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
 			return
 		}
 	}
