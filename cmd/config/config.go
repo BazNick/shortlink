@@ -11,6 +11,7 @@ type Config struct {
 	Address  string `env:"ADDRESS"`
 	BaseURL  string `env:"BASE_URL"`
 	FilePath string `env:"FILE_STORAGE_PATH"`
+	DB       string `env:"DATABASE_DSN"`
 }
 
 func GetCLParams() Config {
@@ -30,7 +31,11 @@ func GetCLParams() Config {
 		flag.StringVar(&config.FilePath, "f", "data.json", "path to file")
 	}
 
-	flag.StringVar(&config.Address, "a", "localhost:8080", "Адрес запуска HTTP-сервера")
+	if config.DB == "" {
+		flag.StringVar(&config.DB, "d", "", "db connection settings")
+	}
+
+	flag.StringVar(&config.Address, "a", "localhost:8080", "http server adress")
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base URL")
 
 	flag.Parse()
