@@ -39,6 +39,7 @@ func main() {
 	router.POST("/", urlHandler.AddLink)
 	router.POST("/api/shorten", urlHandler.PostJSONLink)
 	router.GET("/ping", urlHandler.DBPingConn)
+	router.POST("/api/shorten/batch", urlHandler.BatchLinks)
 
 	router.Run(conf.Address)
 }

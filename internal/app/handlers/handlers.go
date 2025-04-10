@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
+	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/functions"
 	"github.com/BazNick/shortlink/internal/app/storage"
 	"github.com/gin-gonic/gin"
@@ -32,14 +32,32 @@ type (
 	URLHandler struct {
 		storage storage.Storage
 		path    string
-		db      string
+		dbPath  string
+		db      *sql.DB
+	}
+
+	BatchIn struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+
+	BatchOut struct {
+		CorrelationID string `json:"correlation_id"`
+		ShortURL      string `json:"short_url"`
 	}
 )
 
-func NewURLHandler(storage storage.Storage, path, db string) *URLHandler {
+func NewURLHandler(storage storage.Storage, path, dbPath string) *URLHandler {
+	var db *sql.DB
+
+	if dbStorage, ok := storage.(*entities.DB); ok {
+		db = dbStorage.Database
+	}
+
 	handler := &URLHandler{
 		storage: storage,
 		path:    path,
+		dbPath:  dbPath,
 		db:      db,
 	}
 
@@ -210,9 +228,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 }
 
 func (handler *URLHandler) DBPingConn(c *gin.Context) {
-	ps := fmt.Sprintf(handler.db)
-	
-	db, err := sql.Open("pgx", ps)
+	db, err := sql.Open("pgx", handler.dbPath)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 	}
@@ -225,4 +241,81 @@ func (handler *URLHandler) DBPingConn(c *gin.Context) {
 	}
 
 	c.Writer.WriteHeader(http.StatusOK)
+}
+
+func (handler *URLHandler) BatchLinks(c *gin.Context) {
+	if c.Request.Method != http.MethodPost {
+		http.Error(c.Writer, apperr.ErrOnlyPOST, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var links []BatchIn
+
+	if err := json.NewDecoder(c.Request.Body).Decode(&links); err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	for _, link := range links {
+		if handler.storage.CheckValExists(link.OriginalURL) {
+			http.Error(c.Writer, apperr.ErrLinkExists, http.StatusBadRequest)
+			return
+		}
+	}
+
+	out := make([]BatchOut, len(links))
+
+	// если это БД
+	if _, ok := handler.storage.(*entities.DB); ok {
+		tx, err := handler.db.Begin()
+		if err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
+
+		for idx, link := range links {
+			shortURL := functions.RandSeq(8)
+			_, err := tx.ExecContext(
+				context.Background(),
+				`INSERT INTO links (short_url, original_url) VALUES ($1, $2)`,
+				shortURL,
+				link.OriginalURL,
+			)
+			if err != nil {
+				tx.Rollback()
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			}
+			out[idx].CorrelationID = link.CorrelationID
+			out[idx].ShortURL = shortURL
+			
+		}
+
+		if err := tx.Commit(); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+	// если это не БД, то сохраняем в файл и в мапу
+	if _, ok := handler.storage.(*entities.HashDict); ok {
+		for idx, link := range links {
+			shortURL := functions.RandSeq(8)
+			handler.storage.AddHash(functions.RandSeq(8), link.OriginalURL)
+			if err := handler.saveToFile(functions.RandSeq(8), link.OriginalURL); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+				return
+			}
+			out[idx].CorrelationID = link.CorrelationID
+			out[idx].ShortURL = shortURL
+		}
+	}
+
+	resp, err := json.Marshal(out)
+
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	c.Writer.Header().Set("content-type", "application/json")
+	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write(resp)
 }

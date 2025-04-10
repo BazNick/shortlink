@@ -22,6 +22,7 @@ func NewDB(connection string) *DB {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
+	
 	if err = db.PingContext(ctx); err != nil {
 		fmt.Println(err)
 		return nil
