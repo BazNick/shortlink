@@ -17,7 +17,11 @@ import (
 
 func TestAddLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage, "test.json")
+	handler := NewURLHandler(
+		storage, 
+		"test.json",
+		"postgres://user:password@localhost:5432/dbname",
+	)
 
 	type want struct {
 		method       string
@@ -74,7 +78,11 @@ func TestAddLink(t *testing.T) {
 
 func TestGetLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage, "test.json")
+	handler := NewURLHandler(
+		storage, 
+		"test.json",
+		"postgres://user:password@localhost:5432/dbname",
+	)
 
 	randomStr := functions.RandSeq(8)
 	originalURL := "https://yandex.ru"
@@ -146,7 +154,11 @@ func TestGetLink(t *testing.T) {
 
 func TestPostJSONLink(t *testing.T) {
 	storage := entities.NewHashDict()
-	handler := NewURLHandler(storage, "test.json")
+	handler := NewURLHandler(
+		storage, 
+		"test.json",
+		"postgres://user:password@localhost:5432/dbname",
+	)
 
 	type want struct {
 		method       string
