@@ -28,7 +28,7 @@ func GetCLParams() Config {
 	}
 
 	if config.FilePath == "" {
-		flag.StringVar(&config.FilePath, "f", "data.json", "path to file")
+		flag.StringVar(&config.FilePath, "f", "", "path to file")
 	}
 
 	if config.DB == "" {

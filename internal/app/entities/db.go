@@ -69,14 +69,14 @@ func (db *DB) AddHash(hash, link string) (string, error) {
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			err2 := db.Database.QueryRowContext(
+			errQueryRow := db.Database.QueryRowContext(
 				context.Background(),
 				`SELECT short_url FROM links WHERE original_url = $1`,
 				link,
 			).Scan(&shortURL)
 
-			if err2 != nil {
-				return "", fmt.Errorf("conflict, but failed to retrieve short_url: %w", err2)
+			if errQueryRow != nil {
+				return "", fmt.Errorf("conflict, but failed to retrieve short_url: %w", errQueryRow)
 			}
 
 			return shortURL, errors.New("conflict")
@@ -87,7 +87,6 @@ func (db *DB) AddHash(hash, link string) (string, error) {
 
 	return shortURL, nil
 }
-
 
 func (db *DB) GetHash(hash string) string {
 	row := db.Database.QueryRowContext(

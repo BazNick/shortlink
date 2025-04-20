@@ -1,14 +1,11 @@
 package handlers
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
@@ -22,11 +19,6 @@ import (
 type (
 	JSONLink struct {
 		Link string `json:"url"`
-	}
-
-	FileLinks struct {
-		ShortURL    string `json:"short_url"`
-		OriginalURL string `json:"original_url"`
 	}
 
 	URLHandler struct {
@@ -47,7 +39,7 @@ type (
 	}
 )
 
-func NewURLHandler(storage storage.Storage, path, dbPath string) *URLHandler {
+func NewURLHandler(storage storage.Storage, filePath, dbPath string) *URLHandler {
 	var db *sql.DB
 
 	if dbStorage, ok := storage.(*entities.DB); ok {
@@ -56,67 +48,14 @@ func NewURLHandler(storage storage.Storage, path, dbPath string) *URLHandler {
 
 	handler := &URLHandler{
 		storage: storage,
-		path:    path,
+		path:    filePath,
 		dbPath:  dbPath,
 		db:      db,
 	}
 
-	// загружаем все ссылки в память из файла
-	reader, errOpenFile := os.OpenFile(handler.path, os.O_RDONLY|os.O_CREATE, 0666)
-	if errOpenFile != nil {
-		log.Fatalf("Ошибка при открытии файла %s: %v", path, errOpenFile)
-	}
-	defer reader.Close()
-
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		var res FileLinks
-		err := json.Unmarshal(scanner.Bytes(), &res)
-		if err != nil {
-			log.Fatalf("Ошибка при открытии файла %s: %v", path, err)
-		}
-		storage.AddHash(res.ShortURL, res.OriginalURL)
-	}
 	return handler
 }
 
-func (handler *URLHandler) saveToFile(shortURL, originalURL string) error {
-	file, err := os.OpenFile(handler.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-
-	bufWriter := bufio.NewWriter(file)
-
-	data, err := json.Marshal(FileLinks{
-		ShortURL:    shortURL,
-		OriginalURL: originalURL,
-	})
-	if err != nil {
-		file.Close()
-		return err
-	}
-
-	data = append(data, '\n')
-
-	if _, err = bufWriter.Write(data); err != nil {
-		file.Close()
-		return err
-	}
-
-	if err := bufWriter.Flush(); err != nil {
-		file.Close()
-		return err
-	}
-
-	if err := file.Sync(); err != nil {
-		file.Close()
-		return err
-	}
-
-	return file.Close()
-}
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
@@ -151,11 +90,6 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 			c.Writer.Write([]byte(functions.SchemeAndHost(c.Request) + "/" + shortURL))
 			return
 		}
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := handler.saveToFile(randStr, string(body)); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -226,11 +160,6 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 			return
 		}
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := handler.saveToFile(randStr, link.Link); err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -310,17 +239,11 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		if err := tx.Commit(); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		}
-	}
-
-	// если это не БД, то сохраняем в файл и в мапу
-	if _, ok := handler.storage.(*entities.HashDict); ok {
+	} else {
+		// если это не БД, то сохраняем в файл или в мапу
 		for idx, link := range links {
 			shortURL := functions.RandSeq(8)
 			handler.storage.AddHash(functions.RandSeq(8), link.OriginalURL)
-			if err := handler.saveToFile(functions.RandSeq(8), link.OriginalURL); err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-				return
-			}
 			out[idx].CorrelationID = link.CorrelationID
 			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 		}
