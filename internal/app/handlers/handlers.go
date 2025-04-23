@@ -56,7 +56,6 @@ func NewURLHandler(storage storage.Storage, filePath, dbPath string) *URLHandler
 	return handler
 }
 
-
 func (handler *URLHandler) AddLink(c *gin.Context) {
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
@@ -85,7 +84,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 
 	shortURL, err := handler.storage.AddHash(randStr, string(body))
 	if err != nil {
-		if err.Error() == "conflict" {
+		if err.Error() == apperr.ErrValAlreadyExists.Error() {
 			c.Writer.WriteHeader(http.StatusConflict)
 			c.Writer.Write([]byte(functions.SchemeAndHost(c.Request) + "/" + shortURL))
 			return

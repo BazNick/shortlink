@@ -3,11 +3,11 @@ package entities
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/BazNick/shortlink/internal/app/apperr"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -79,7 +79,7 @@ func (db *DB) AddHash(hash, link string) (string, error) {
 				return "", fmt.Errorf("conflict, but failed to retrieve short_url: %w", errQueryRow)
 			}
 
-			return shortURL, errors.New("conflict")
+			return shortURL, apperr.ErrValAlreadyExists
 		}
 
 		return "", err

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/BazNick/shortlink/cmd/compress"
 	"github.com/BazNick/shortlink/cmd/config"
-	"github.com/BazNick/shortlink/cmd/logger"
+	"github.com/BazNick/shortlink/cmd/middleware/compress"
+	"github.com/BazNick/shortlink/cmd/middleware/logger"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/handlers"
 	"github.com/BazNick/shortlink/internal/app/storage"
