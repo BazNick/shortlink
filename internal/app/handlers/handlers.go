@@ -148,7 +148,9 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	shortURL, err := handler.storage.AddHash(randStr, link.Link)
 	if err != nil {
 		if err.Error() == "conflict" {
-			resp, err := json.Marshal(map[string]string{"result": functions.SchemeAndHost(c.Request) + "/" + shortURL})
+			resp, err := json.Marshal(map[string]string{
+				"result": functions.SchemeAndHost(c.Request) + "/" + shortURL,
+			})
 			if err != nil {
 				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 				return

@@ -47,15 +47,15 @@ func (f *FileStore) AddHash(hash, link string) (string, error) {
 		return "", err
 	}
 
-	if err := bufWriter.Flush(); err != nil {
-		file.Close()
-		return "", err
-	}
+	// if err := bufWriter.Flush(); err != nil {
+	// 	file.Close()
+	// 	return "", err
+	// }
 
-	if err := file.Sync(); err != nil {
-		file.Close()
-		return "", err
-	}
+	// if err := file.Sync(); err != nil {
+	// 	file.Close()
+	// 	return "", err
+	// }
 
 	return "", nil
 }
