@@ -3,6 +3,7 @@ package entities
 import (
 	"bufio"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 )
@@ -40,9 +41,12 @@ func (f *FileStore) AddHash(hash, link string) (string, error) {
 		return "", err
 	}
 
-	data = append(data, '\n')
-
 	if _, err = bufWriter.Write(data); err != nil {
+		file.Close()
+		return "", err
+	}
+
+	if _, err = bufWriter.WriteRune('\n'); err != nil {
 		file.Close()
 		return "", err
 	}
@@ -67,11 +71,17 @@ func (f *FileStore) GetHash(hash string) string {
 	}
 	defer reader.Close()
 
-	scanner := bufio.NewScanner(reader)
+	var (
+		r   = bufio.NewReader(reader)
+		dec = json.NewDecoder(r)
+	)
 
-	for scanner.Scan() {
+	for {
 		var res FileLinks
-		err := json.Unmarshal(scanner.Bytes(), &res)
+		err := dec.Decode(&res)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			log.Fatalf("Ошибка при открытии файла %s: %v", f.Path, err)
 		}
@@ -89,11 +99,17 @@ func (f *FileStore) CheckValExists(link string) bool {
 	}
 	defer reader.Close()
 
-	scanner := bufio.NewScanner(reader)
+	var (
+		r   = bufio.NewReader(reader)
+		dec = json.NewDecoder(r)
+	)
 
-	for scanner.Scan() {
+	for {
 		var res FileLinks
-		err := json.Unmarshal(scanner.Bytes(), &res)
+		err := dec.Decode(&res)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			log.Fatalf("Ошибка при открытии файла %s: %v", f.Path, err)
 		}

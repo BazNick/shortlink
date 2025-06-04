@@ -39,7 +39,10 @@ type (
 	}
 )
 
-func NewURLHandler(storage storage.Storage, filePath, dbPath string) *URLHandler {
+func NewURLHandler(
+	storage storage.Storage,
+	filePath, dbPath string,
+) *URLHandler {
 	var db *sql.DB
 
 	if dbStorage, ok := storage.(*entities.DB); ok {
