@@ -11,10 +11,12 @@ func User(c *gin.Context) string {
 	token, err := c.Cookie("token")
 	if err != nil {
 		c.AbortWithError(http.StatusUnauthorized, err)
+		return ""
 	}
 	userID := auth.GetUserID(token)
 	if userID == "" {
-		// c.AbortWithError(http.StatusUnauthorized, err)
+		c.AbortWithError(http.StatusUnauthorized, err)
+		return ""
 	}
 	return userID
 }
