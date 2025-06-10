@@ -85,7 +85,13 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	shortURL, err := handler.storage.AddHash(randStr, string(body), functions.User(c))
+	userID := functions.User(c)
+	if userID == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	shortURL, err := handler.storage.AddHash(randStr, string(body), userID)
 	if err != nil {
 		if err.Error() == apperr.ErrValAlreadyExists.Error() {
 			c.Writer.WriteHeader(http.StatusConflict)
@@ -128,6 +134,12 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
+	userID := functions.User(c)
+	if userID == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	var link JSONLink
 	if err := json.NewDecoder(c.Request.Body).Decode(&link); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
@@ -147,7 +159,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	shortURL, err := handler.storage.AddHash(randStr, link.Link, functions.User(c))
+	shortURL, err := handler.storage.AddHash(randStr, link.Link, userID)
 	if err != nil {
 		if err.Error() == "conflict" {
 			resp, err := json.Marshal(map[string]string{
@@ -200,6 +212,12 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		return
 	}
 
+	userID := functions.User(c)
+	if userID == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	var links []BatchIn
 
 	if err := json.NewDecoder(c.Request.Body).Decode(&links); err != nil {
@@ -230,7 +248,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				`INSERT INTO links (short_url, original_url, user_id) VALUES ($1, $2, $3)`,
 				shortURL,
 				link.OriginalURL,
-				functions.User(c),
+				userID,
 			)
 			if err != nil {
 				tx.Rollback()
@@ -248,7 +266,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		// если это не БД, то сохраняем в файл или в мапу
 		for idx, link := range links {
 			shortURL := functions.RandSeq(8)
-			handler.storage.AddHash(shortURL, link.OriginalURL, functions.User(c))
+			handler.storage.AddHash(shortURL, link.OriginalURL, userID)
 			out[idx].CorrelationID = link.CorrelationID
 			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 		}
@@ -267,10 +285,15 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 }
 
 func (handler *URLHandler) GetUserLinks(c *gin.Context) {
+	userID := functions.User(c)
+	if userID == "" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 	rows, errQuery := handler.db.QueryContext(
 		context.Background(),
 		`SELECT short_url, original_url FROM links WHERE user_id = $1`,
-		functions.User(c),
+		userID,
 	)
 	if errQuery != nil {
 		http.Error(c.Writer, errQuery.Error(), http.StatusBadRequest)
