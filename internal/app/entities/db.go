@@ -35,6 +35,7 @@ func NewDB(connection string) *DB {
 		`CREATE TABLE IF NOT EXISTS links (
 			short_url varchar(15) NOT NULL,
 			original_url text NOT NULL UNIQUE,
+			user_id text NOT NULL,
 			PRIMARY KEY (short_url)
 		)`,
 	)
@@ -55,16 +56,17 @@ func NewDB(connection string) *DB {
 	return &DB{Database: db}
 }
 
-func (db *DB) AddHash(hash, link string) (string, error) {
+func (db *DB) AddHash(hash, link, userID string) (string, error) {
 	var shortURL string
 
 	err := db.Database.QueryRowContext(
 		context.Background(),
-		`INSERT INTO links (short_url, original_url) 
-		 VALUES ($1, $2) 
+		`INSERT INTO links (short_url, original_url, user_id) 
+		 VALUES ($1, $2, $3) 
 		 RETURNING short_url;`,
 		hash,
 		link,
+		userID,
 	).Scan(&shortURL)
 
 	if err != nil {

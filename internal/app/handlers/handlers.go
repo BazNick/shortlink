@@ -85,7 +85,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	shortURL, err := handler.storage.AddHash(randStr, string(body))
+	shortURL, err := handler.storage.AddHash(randStr, string(body), functions.User(c))
 	if err != nil {
 		if err.Error() == apperr.ErrValAlreadyExists.Error() {
 			c.Writer.WriteHeader(http.StatusConflict)
@@ -147,7 +147,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
 
-	shortURL, err := handler.storage.AddHash(randStr, link.Link)
+	shortURL, err := handler.storage.AddHash(randStr, link.Link, functions.User(c))
 	if err != nil {
 		if err.Error() == "conflict" {
 			resp, err := json.Marshal(map[string]string{
@@ -227,9 +227,10 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			shortURL := functions.RandSeq(8)
 			_, err := tx.ExecContext(
 				context.Background(),
-				`INSERT INTO links (short_url, original_url) VALUES ($1, $2)`,
+				`INSERT INTO links (short_url, original_url, user_id) VALUES ($1, $2, $3)`,
 				shortURL,
 				link.OriginalURL,
+				functions.User(c),
 			)
 			if err != nil {
 				tx.Rollback()
@@ -247,7 +248,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		// если это не БД, то сохраняем в файл или в мапу
 		for idx, link := range links {
 			shortURL := functions.RandSeq(8)
-			handler.storage.AddHash(functions.RandSeq(8), link.OriginalURL)
+			handler.storage.AddHash(shortURL, link.OriginalURL, functions.User(c))
 			out[idx].CorrelationID = link.CorrelationID
 			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 		}
@@ -262,5 +263,36 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 
 	c.Writer.Header().Set("content-type", "application/json")
 	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write(resp)
+}
+
+func (handler *URLHandler) GetUserLinks(c *gin.Context) {
+	rows, err := handler.db.QueryContext(
+		context.Background(),
+		`SELECT short_url, original_url FROM links WHERE user_id = $1`,
+		functions.User(c),
+	)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+	}
+
+	defer rows.Close()
+
+	var result []entities.FileLinks
+	for rows.Next() {
+		var rec entities.FileLinks
+		if err := rows.Scan(&rec.ShortURL, &rec.OriginalURL); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		}
+		result = append(result, rec)
+	}
+	resp, err := json.Marshal(result)
+
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	c.Writer.Header().Set("content-type", "application/json")
 	c.Writer.Write(resp)
 }

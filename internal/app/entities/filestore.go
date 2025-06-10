@@ -24,7 +24,7 @@ func NewFileStore(path string) *FileStore {
 	}
 }
 
-func (f *FileStore) AddHash(hash, link string) (string, error) {
+func (f *FileStore) AddHash(hash, link, userID string) (string, error) {
 	file, err := os.OpenFile(f.Path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return "", err

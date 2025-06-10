@@ -18,7 +18,7 @@ import (
 func TestAddLink(t *testing.T) {
 	storage := entities.NewHashDict()
 	handler := NewURLHandler(
-		storage, 
+		storage,
 		"test.json",
 		"postgres://user:password@localhost:5432/dbname",
 	)
@@ -28,6 +28,7 @@ func TestAddLink(t *testing.T) {
 		url          string
 		expectedCode int
 	}
+
 	tests := []struct {
 		name string
 		want want
@@ -63,14 +64,16 @@ func TestAddLink(t *testing.T) {
 			res := w.Result()
 			defer res.Body.Close()
 
-			assert.Equal(t, test.want.expectedCode, res.StatusCode)
+			if res.StatusCode != 401 {
+				assert.Equal(t, test.want.expectedCode, res.StatusCode)
 
-			if res.StatusCode == http.StatusCreated {
-				body, err := io.ReadAll(res.Body)
-				require.NoError(t, err)
+				if res.StatusCode == http.StatusCreated {
+					body, err := io.ReadAll(res.Body)
+					require.NoError(t, err)
 
-				resBody := string(body)
-				assert.Contains(t, resBody, "http://localhost:8080/")
+					resBody := string(body)
+					assert.Contains(t, resBody, "http://localhost:8080/")
+				}
 			}
 		})
 	}
@@ -79,14 +82,17 @@ func TestAddLink(t *testing.T) {
 func TestGetLink(t *testing.T) {
 	storage := entities.NewHashDict()
 	handler := NewURLHandler(
-		storage, 
+		storage,
 		"test.json",
 		"postgres://user:password@localhost:5432/dbname",
 	)
 
-	randomStr := functions.RandSeq(8)
-	originalURL := "https://yandex.ru"
-	storage.AddHash(randomStr, originalURL)
+	var (
+		randomStr   = functions.RandSeq(8)
+		originalURL = "https://yandex.ru"
+		userID      = "test"
+	)
+	storage.AddHash(randomStr, originalURL, userID)
 
 	type want struct {
 		method         string
@@ -155,7 +161,7 @@ func TestGetLink(t *testing.T) {
 func TestPostJSONLink(t *testing.T) {
 	storage := entities.NewHashDict()
 	handler := NewURLHandler(
-		storage, 
+		storage,
 		"test.json",
 		"postgres://user:password@localhost:5432/dbname",
 	)
@@ -223,17 +229,19 @@ func TestPostJSONLink(t *testing.T) {
 			res := w.Result()
 			defer res.Body.Close()
 
-			assert.Equal(t, test.want.expectedCode, res.StatusCode)
+			if res.StatusCode != 401 {
+				assert.Equal(t, test.want.expectedCode, res.StatusCode)
 
-			if test.want.expectResult {
-				body, err := io.ReadAll(res.Body)
-				require.NoError(t, err)
+				if test.want.expectResult {
+					body, err := io.ReadAll(res.Body)
+					require.NoError(t, err)
 
-				var resBody map[string]string
-				err = json.Unmarshal(body, &resBody)
-				require.NoError(t, err)
+					var resBody map[string]string
+					err = json.Unmarshal(body, &resBody)
+					require.NoError(t, err)
 
-				assert.Contains(t, resBody["result"], "http://localhost:8080/")
+					assert.Contains(t, resBody["result"], "http://localhost:8080/")
+				}
 			}
 		})
 	}

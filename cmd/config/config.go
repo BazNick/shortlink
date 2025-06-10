@@ -33,7 +33,7 @@ func GetCLParams() Config {
 	}
 
 	if config.DB == "" {
-		flag.StringVar(&config.DB, "d", "", "db connection settings")
+		flag.StringVar(&config.DB, "d", "", "db connection settings") // postgres://user:password@localhost:5432/dbname
 	}
 
 	if config.SecretKey == "" {

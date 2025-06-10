@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/BazNick/shortlink/cmd/config"
+	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
 	"github.com/BazNick/shortlink/cmd/middleware/logger"
 	"github.com/BazNick/shortlink/internal/app/entities"
@@ -39,13 +40,18 @@ func main() {
 		conf.DB,
 	)
 
-	router.Use(logger.WithLogging(), compress.GzipHandle())
+	router.Use(
+		logger.WithLogging(), 
+		compress.GzipHandle(),
+		auth.Auth(),
+	)
 
 	router.GET("/:id", urlHandler.GetLink)
 	router.POST("/", urlHandler.AddLink)
 	router.POST("/api/shorten", urlHandler.PostJSONLink)
 	router.GET("/ping", urlHandler.DBPingConn)
 	router.POST("/api/shorten/batch", urlHandler.BatchLinks)
+	router.GET("/api/user/urls", urlHandler.GetUserLinks)
 
 	router.Run(conf.Address)
 }
