@@ -267,13 +267,13 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 }
 
 func (handler *URLHandler) GetUserLinks(c *gin.Context) {
-	rows, err := handler.db.QueryContext(
+	rows, errQuery := handler.db.QueryContext(
 		context.Background(),
 		`SELECT short_url, original_url FROM links WHERE user_id = $1`,
 		functions.User(c),
 	)
-	if err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+	if errQuery != nil {
+		http.Error(c.Writer, errQuery.Error(), http.StatusBadRequest)
 	}
 
 	defer rows.Close()
