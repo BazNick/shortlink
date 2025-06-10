@@ -15,8 +15,8 @@ type Claims struct {
 	UserID string
 }
 
-const TOKEN_EXP = time.Hour * 3
-const SECRET_KEY = "supersecretkey"
+const TokenExp = time.Hour * 3
+const SecretKey = "supersecretkey"
 
 func randBytes(n int) (string, error) {
 	b := make([]byte, n)
@@ -50,13 +50,13 @@ func Auth() gin.HandlerFunc {
 		// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 			},
 			UserID: id,
 		})
 
 		// создаём строку токена
-		tokenString, err := token.SignedString([]byte(SECRET_KEY))
+		tokenString, err := token.SignedString([]byte(SecretKey))
 		if err != nil {
 			c.AbortWithError(http.StatusUnauthorized, err)
 		}
@@ -64,7 +64,7 @@ func Auth() gin.HandlerFunc {
 		c.SetCookie(
 			"token",
 			tokenString,
-			int(TOKEN_EXP.Seconds()),
+			int(TokenExp.Seconds()),
 			"/",
 			"localhost",
 			false,
