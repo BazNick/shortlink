@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
 
 func TestPostJSONLink(t *testing.T) {
 	storage := entities.NewHashDict()
@@ -74,6 +74,7 @@ func TestPostJSONLink(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			router := gin.Default()
+			router.Use(auth.Auth())
 			router.POST("/", handler.PostJSONLink)
 
 			data := strings.NewReader(test.want.body)
@@ -86,20 +87,19 @@ func TestPostJSONLink(t *testing.T) {
 			res := w.Result()
 			defer res.Body.Close()
 
-			if res.StatusCode != 401 {
-				assert.Equal(t, test.want.expectedCode, res.StatusCode)
+			assert.Equal(t, test.want.expectedCode, res.StatusCode)
 
-				if test.want.expectResult {
-					body, err := io.ReadAll(res.Body)
-					require.NoError(t, err)
+			if test.want.expectResult {
+				body, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
 
-					var resBody map[string]string
-					err = json.Unmarshal(body, &resBody)
-					require.NoError(t, err)
+				var resBody map[string]string
+				err = json.Unmarshal(body, &resBody)
+				require.NoError(t, err)
 
-					assert.Contains(t, resBody["result"], "http://localhost:8080/")
-				}
+				assert.Contains(t, resBody["result"], "http://localhost:8080/")
 			}
+
 		})
 	}
 }

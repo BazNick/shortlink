@@ -11,22 +11,20 @@ import (
 )
 
 func (handler *URLHandler) GetUserLinks(c *gin.Context) {
-	userID, err := functions.User(c, true)
+	user, err := functions.GetUser(c)
 	if err != nil {
-		http.Error(c.Writer, "unauthorized", http.StatusBadRequest)
+		http.Error(c.Writer, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	if userID == "" {
-		http.Error(c.Writer, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+
 	rows, err := handler.db.QueryContext(
 		context.Background(),
 		`SELECT short_url, original_url FROM links WHERE user_id = $1`,
-		userID,
+		user,
 	)
 	if err != nil {
-		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	defer rows.Close()

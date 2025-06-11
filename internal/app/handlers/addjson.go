@@ -11,6 +11,12 @@ import (
 )
 
 func (handler *URLHandler) PostJSONLink(c *gin.Context) {
+	user, err := functions.GetUser(c)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
@@ -34,12 +40,8 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		randStr  = functions.RandSeq(8)
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
-	userID, err := functions.User(c, false)
-	if err != nil {
-		http.Error(c.Writer, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	shortURL, err := handler.storage.AddHash(randStr, link.Link, userID)
+
+	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
 	if err != nil {
 		if err.Error() == "conflict" {
 			resp, err := json.Marshal(map[string]string{

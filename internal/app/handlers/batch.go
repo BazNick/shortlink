@@ -12,6 +12,12 @@ import (
 )
 
 func (handler *URLHandler) BatchLinks(c *gin.Context) {
+	user, err := functions.GetUser(c)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
@@ -30,11 +36,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			return
 		}
 	}
-	userID, err := functions.User(c, false)
-	if err != nil {
-		http.Error(c.Writer, "unauthorized", http.StatusUnauthorized)
-		return
-	}
+	
 	out := make([]BatchOut, len(links))
 
 	// если это БД
@@ -51,7 +53,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 				`INSERT INTO links (short_url, original_url, user_id) VALUES ($1, $2, $3)`,
 				shortURL,
 				link.OriginalURL,
-				userID,
+				user,
 			)
 			if err != nil {
 				tx.Rollback()
@@ -69,7 +71,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		// если это не БД, то сохраняем в файл или в мапу
 		for idx, link := range links {
 			shortURL := functions.RandSeq(8)
-			handler.storage.AddHash(shortURL, link.OriginalURL, userID)
+			handler.storage.AddHash(shortURL, link.OriginalURL, user)
 			out[idx].CorrelationID = link.CorrelationID
 			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
 		}

@@ -3,21 +3,17 @@ package functions
 import (
 	"errors"
 
-	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/gin-gonic/gin"
 )
 
-func User(c *gin.Context, strict bool) (string, error) {
-	token, err := c.Cookie("token")
-	if err != nil {
-		return "", err
+func GetUser(c *gin.Context) (string, error) {
+	uid, ok := c.Get("userID")
+	if !ok {
+		return "", errors.New("unauthorized")
 	}
-	userID := auth.GetUserID(token)
-	if userID == "" {
-		if strict {
-			return "", errors.New("unauthorized: invalid token")
-		}
-		return "", nil
+	userID, ok := uid.(string)
+	if !ok || userID == "" {
+		return "", errors.New("unauthorized")
 	}
 	return userID, nil
 }

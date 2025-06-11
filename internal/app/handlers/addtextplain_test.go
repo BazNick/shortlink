@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -51,6 +52,7 @@ func TestAddLink(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			router := gin.Default()
+			router.Use(auth.Auth())
 			router.POST("/", handler.AddLink)
 
 			data := strings.NewReader(test.want.url)
@@ -62,17 +64,16 @@ func TestAddLink(t *testing.T) {
 			res := w.Result()
 			defer res.Body.Close()
 
-			if res.StatusCode != 401 {
-				assert.Equal(t, test.want.expectedCode, res.StatusCode)
+			assert.Equal(t, test.want.expectedCode, res.StatusCode)
 
-				if res.StatusCode == http.StatusCreated {
-					body, err := io.ReadAll(res.Body)
-					require.NoError(t, err)
+			if res.StatusCode == http.StatusCreated {
+				body, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
 
-					resBody := string(body)
-					assert.Contains(t, resBody, "http://localhost:8080/")
-				}
+				resBody := string(body)
+				assert.Contains(t, resBody, "http://localhost:8080/")
 			}
+
 		})
 	}
 }

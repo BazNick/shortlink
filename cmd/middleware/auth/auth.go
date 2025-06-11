@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -35,31 +36,41 @@ func randBytes(n int) (string, error) {
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// берем куки
-		cookie, err := c.Cookie("token")
-		if err == nil && cookie != "" {
-			// Кука уже есть — продолжаем цепочку
-			c.Next()
-			return
-		}
-		// генерируем последовательность рандомных байт для ID пользователя
-		id, err := randBytes(16)
-		if err != nil {
-			c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
-		// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
-			},
-			UserID: id,
-		})
+		path := c.FullPath()
+		cookie, err := c.Cookie(CookieName)
 
-		// создаём строку токена
-		tokenString, err := token.SignedString([]byte(SecretKey))
+		// парсим токен, если есть
+		if err == nil && cookie != "" {
+			claims, err := ParseToken(cookie)
+			if err == nil {
+				c.Set("userID", claims.UserID)
+				c.Next()
+				return
+			}
+		}
+
+		// маршруты, которые требуют токен
+		privatePaths := map[string]bool{
+			"/api/user/urls": true,
+			// ...
+		}
+
+		if privatePaths[path] {
+			// Токен обязателен
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// Если токена нет — создаём новый
+		tokenString, err := GenToken()
 		if err != nil {
-			c.AbortWithError(http.StatusUnauthorized, err)
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		claims, err := ParseToken(tokenString)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
@@ -72,6 +83,43 @@ func Auth() gin.HandlerFunc {
 			false,
 			true,
 		)
+		c.Set("userID", claims.UserID)
 		c.Next()
 	}
+}
+
+
+func GenToken() (string, error) {
+	// генерируем последовательность рандомных байт для ID пользователя
+	id, err := randBytes(16)
+	if err != nil {
+		return "", err
+	}
+	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
+		},
+		UserID: id,
+	})
+
+	// создаём строку токена
+	tokenString, err := token.SignedString([]byte(SecretKey))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+func ParseToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, errors.New("invalid token")
 }

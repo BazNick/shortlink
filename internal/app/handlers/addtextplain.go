@@ -11,6 +11,12 @@ import (
 )
 
 func (handler *URLHandler) AddLink(c *gin.Context) {
+	user, err := functions.GetUser(c)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if c.Request.Method != http.MethodPost {
 		http.Error(c.Writer, apperr.ErrOnlyPOST.Error(), http.StatusMethodNotAllowed)
 		return
@@ -21,7 +27,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		http.Error(c.Writer, apperr.ErrBodyRead.Error(), http.StatusBadRequest)
 		return
 	}
-	c.Request.Body.Close()
+	defer c.Request.Body.Close()
 
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(string(body))
@@ -35,11 +41,8 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 		randStr  = functions.RandSeq(8)
 		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
 	)
-	userID, err := functions.User(c, false)
-	if err != nil {
-		_, _ = functions.User(c, false)
-	}
-	shortURL, err := handler.storage.AddHash(randStr, string(body), userID)
+
+	shortURL, err := handler.storage.AddHash(randStr, string(body), user)
 	if err != nil {
 		if err.Error() == apperr.ErrValAlreadyExists.Error() {
 			c.Writer.WriteHeader(http.StatusConflict)
