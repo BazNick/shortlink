@@ -35,6 +35,7 @@ func (handler *URLHandler) GetUserLinks(c *gin.Context) {
 		if err := rows.Scan(&rec.ShortURL, &rec.OriginalURL); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		}
+		rec.ShortURL = functions.SchemeAndHost(c.Request) + "/" + rec.ShortURL
 		result = append(result, rec)
 	}
 
