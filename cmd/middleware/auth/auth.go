@@ -36,7 +36,7 @@ func randBytes(n int) (string, error) {
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		path := c.FullPath()
+		// path := c.FullPath()
 		cookie, err := c.Cookie(CookieName)
 
 		// парсим токен, если есть
@@ -49,17 +49,17 @@ func Auth() gin.HandlerFunc {
 			}
 		}
 
-		// маршруты, которые требуют токен
-		privatePaths := map[string]bool{
-			"/api/user/urls": true,
-			// ...
-		}
+		// // маршруты, которые требуют токен
+		// privatePaths := map[string]bool{
+		// 	"/api/user/urls": true,
+		// 	// ...
+		// }
 
-		if privatePaths[path] {
-			// Токен обязателен
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
+		// if privatePaths[path] {
+		// 	// Токен обязателен
+		// 	c.AbortWithStatus(http.StatusUnauthorized)
+		// 	return
+		// }
 
 		// Если токена нет — создаём новый
 		tokenString, err := GenToken()
