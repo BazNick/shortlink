@@ -18,7 +18,7 @@ type Claims struct {
 const (
 	CookieName   = "token"
 	CookiePath   = "/"
-	CookieDomain = "localhost"
+	CookieDomain = ""
 	TokenExp     = time.Hour * 3
 	SecretKey    = "supersecretkey"
 )
@@ -40,11 +40,6 @@ func Auth() gin.HandlerFunc {
 		if err == nil && cookie != "" {
 			// Кука уже есть — продолжаем цепочку
 			c.Next()
-			return
-		}
-
-		// смотрим есть ли уже записанная кука, если есть - выходим
-		if cookie != "" {
 			return
 		}
 		// генерируем последовательность рандомных байт для ID пользователя

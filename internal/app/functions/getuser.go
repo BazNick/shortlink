@@ -7,14 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func User(c *gin.Context) (string, error) {
+func User(c *gin.Context, strict bool) (string, error) {
 	token, err := c.Cookie("token")
 	if err != nil {
 		return "", err
 	}
 	userID := auth.GetUserID(token)
 	if userID == "" {
-		return "", errors.New("unauthorized: invalid user ID")
+		if strict {
+			return "", errors.New("unauthorized: invalid token")
+		}
+		return "", nil
 	}
 	return userID, nil
 }
