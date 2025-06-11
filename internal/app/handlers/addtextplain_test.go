@@ -15,11 +15,14 @@ import (
 )
 
 func TestAddLink(t *testing.T) {
-	storage := entities.NewHashDict()
-	handler := NewURLHandler(
-		storage,
-		"test.json",
-		"postgres://user:password@localhost:5432/dbname",
+	var (
+		storage = entities.NewHashDict()
+		handler = NewURLHandler(
+			storage,
+			"test.json",
+			"postgres://user:password@localhost:5432/dbname",
+		)
+		secret = "secret_key"
 	)
 
 	type want struct {
@@ -52,7 +55,7 @@ func TestAddLink(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			router := gin.Default()
-			router.Use(auth.Auth())
+			router.Use(auth.Auth(secret))
 			router.POST("/", handler.AddLink)
 
 			data := strings.NewReader(test.want.url)

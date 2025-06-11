@@ -13,7 +13,7 @@ import (
 func (handler *URLHandler) GetUserLinks(c *gin.Context) {
 	user, err := functions.GetUser(c)
 	if err != nil {
-		c.Writer.WriteHeader(http.StatusNoContent)
+		c.Writer.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

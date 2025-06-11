@@ -43,7 +43,7 @@ func main() {
 	router.Use(
 		logger.WithLogging(), 
 		compress.GzipHandle(),
-		auth.Auth(),
+		auth.Auth(conf.SecretKey),
 	)
 
 	router.GET("/:id", urlHandler.GetLink)
