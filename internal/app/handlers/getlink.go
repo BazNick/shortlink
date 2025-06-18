@@ -19,7 +19,7 @@ func (handler *URLHandler) GetLink(c *gin.Context) {
 	)
 
 	if pageID == "" {
-		http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusBadRequest)
+		http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusGone)
 		return
 	}
 

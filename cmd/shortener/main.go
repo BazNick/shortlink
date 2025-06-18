@@ -1,6 +1,8 @@
 package main
 
 import (
+	"runtime"
+	
 	"github.com/BazNick/shortlink/cmd/config"
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
@@ -22,6 +24,8 @@ func main() {
 	case conf.DB != "":
 		db := entities.NewDB(conf.DB)
 		storage = db
+
+		entities.StartDeleteWorkers(db.Database, runtime.NumCPU())
 
 		defer db.Database.Close()
 	case conf.FilePath != "":
@@ -52,6 +56,7 @@ func main() {
 	router.GET("/ping", urlHandler.DBPingConn)
 	router.POST("/api/shorten/batch", urlHandler.BatchLinks)
 	router.GET("/api/user/urls", urlHandler.GetUserLinks)
+	router.DELETE("/api/user/urls", urlHandler.DeleteUserLinks)
 
 	router.Run(conf.Address)
 }

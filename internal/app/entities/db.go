@@ -36,6 +36,7 @@ func NewDB(connection string) *DB {
 			short_url varchar(15) NOT NULL,
 			original_url text NOT NULL UNIQUE,
 			user_id text NOT NULL,
+			is_deleted BOOLEAN DEFAULT FALSE,
 			PRIMARY KEY (short_url)
 		)`,
 	)
@@ -93,7 +94,7 @@ func (db *DB) AddHash(hash, link, userID string) (string, error) {
 func (db *DB) GetHash(hash string) string {
 	row := db.Database.QueryRowContext(
 		context.Background(),
-		`SELECT original_url FROM links WHERE short_url = $1`,
+		`SELECT original_url FROM links WHERE short_url = $1 AND is_deleted = false;`,
 		hash,
 	)
 
