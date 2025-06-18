@@ -50,7 +50,7 @@ func TestGetLink(t *testing.T) {
 			want: want{
 				method:         http.MethodGet,
 				shortURL:       "nonexistent",
-				expectedCode:   http.StatusBadRequest,
+				expectedCode:   http.StatusGone,
 				expectedHeader: "",
 			},
 		},
