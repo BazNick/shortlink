@@ -55,18 +55,20 @@ func TestCheckValExists(t *testing.T) {
 
 func TestHashDict_AddHash(t *testing.T) {
 	tests := []struct {
-		name string
-		h    HashDict
-		hash string
-		link string
+		name   string
+		h      HashDict
+		hash   string
+		link   string
+		userID string
 	}{
 		{
 			name: "Adding a new key-value pair to an empty hash dictionary",
 			h: HashDict{
 				Dict: map[string]string{},
 			},
-			hash: "new_key",
-			link: "new_value",
+			hash:   "new_key",
+			link:   "new_value",
+			userID: "test",
 		},
 		{
 			name: "Adding a new key-value pair to a non-empty hash dictionary",
@@ -75,8 +77,9 @@ func TestHashDict_AddHash(t *testing.T) {
 					"existing_key": "existing_value",
 				},
 			},
-			hash: "another_new_key",
-			link: "another_new_value",
+			hash:   "another_new_key",
+			link:   "another_new_value",
+			userID: "test",
 		},
 		{
 			name: "Overwriting existing value with a new one",
@@ -85,14 +88,15 @@ func TestHashDict_AddHash(t *testing.T) {
 					"existing_key": "old_value",
 				},
 			},
-			hash: "existing_key",
-			link: "updated_value",
+			hash:   "existing_key",
+			link:   "updated_value",
+			userID: "test",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.h.AddHash(tt.hash, tt.link)
+			tt.h.AddHash(tt.hash, tt.link, tt.userID)
 			require.Contains(t, tt.h.Dict, tt.hash)
 			require.Equal(t, tt.link, tt.h.Dict[tt.hash])
 		})

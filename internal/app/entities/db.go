@@ -3,11 +3,11 @@ package entities
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/BazNick/shortlink/internal/app/apperr"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -35,6 +35,8 @@ func NewDB(connection string) *DB {
 		`CREATE TABLE IF NOT EXISTS links (
 			short_url varchar(15) NOT NULL,
 			original_url text NOT NULL UNIQUE,
+			user_id text NOT NULL,
+			is_deleted BOOLEAN DEFAULT FALSE,
 			PRIMARY KEY (short_url)
 		)`,
 	)
@@ -55,31 +57,32 @@ func NewDB(connection string) *DB {
 	return &DB{Database: db}
 }
 
-func (db *DB) AddHash(hash, link string) (string, error) {
+func (db *DB) AddHash(hash, link, userID string) (string, error) {
 	var shortURL string
 
 	err := db.Database.QueryRowContext(
 		context.Background(),
-		`INSERT INTO links (short_url, original_url) 
-		 VALUES ($1, $2) 
+		`INSERT INTO links (short_url, original_url, user_id) 
+		 VALUES ($1, $2, $3) 
 		 RETURNING short_url;`,
 		hash,
 		link,
+		userID,
 	).Scan(&shortURL)
 
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			err2 := db.Database.QueryRowContext(
+			errQueryRow := db.Database.QueryRowContext(
 				context.Background(),
 				`SELECT short_url FROM links WHERE original_url = $1`,
 				link,
 			).Scan(&shortURL)
 
-			if err2 != nil {
-				return "", fmt.Errorf("conflict, but failed to retrieve short_url: %w", err2)
+			if errQueryRow != nil {
+				return "", fmt.Errorf("conflict, but failed to retrieve short_url: %w", errQueryRow)
 			}
 
-			return shortURL, errors.New("conflict")
+			return shortURL, apperr.ErrValAlreadyExists
 		}
 
 		return "", err
@@ -88,11 +91,10 @@ func (db *DB) AddHash(hash, link string) (string, error) {
 	return shortURL, nil
 }
 
-
 func (db *DB) GetHash(hash string) string {
 	row := db.Database.QueryRowContext(
 		context.Background(),
-		`SELECT original_url FROM links WHERE short_url = $1`,
+		`SELECT original_url FROM links WHERE short_url = $1 AND is_deleted = false;`,
 		hash,
 	)
 

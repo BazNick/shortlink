@@ -1,13 +1,17 @@
 package functions
 
-import "math/rand"
+import (
+	"crypto/rand"
+	"encoding/hex"
+)
 
-const randomStr = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandSeq(n int) string {
 	b := make([]byte, n)
-	for i := range b {
-		b[i] = randomStr[rand.Intn(len(randomStr))]
-	}
-	return string(b)
+    _, err := rand.Read(b)
+    if err != nil {
+        panic(err)
+    }
+
+    return hex.EncodeToString(b)[:n]
 }
