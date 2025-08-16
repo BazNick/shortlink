@@ -2,7 +2,7 @@ package main
 
 import (
 	"runtime"
-	
+
 	"github.com/BazNick/shortlink/cmd/config"
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
@@ -10,6 +10,7 @@ import (
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/handlers"
 	"github.com/BazNick/shortlink/internal/app/storage"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,6 +20,8 @@ func main() {
 		router  = gin.Default()
 		storage storage.Storage
 	)
+
+	pprof.Register(router)
 
 	switch {
 	case conf.DB != "":
@@ -45,7 +48,7 @@ func main() {
 	)
 
 	router.Use(
-		logger.WithLogging(), 
+		logger.WithLogging(),
 		compress.GzipHandle(),
 		auth.Auth(conf.SecretKey),
 	)

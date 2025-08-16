@@ -30,13 +30,15 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		return
 	}
 
+	baseURL := functions.SchemeAndHost(c.Request)
+
 	for _, link := range links {
 		if handler.storage.CheckValExists(link.OriginalURL) {
 			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
 			return
 		}
 	}
-	
+
 	out := make([]BatchOut, len(links))
 
 	// если это БД
@@ -44,6 +46,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 		tx, err := handler.db.Begin()
 		if err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		for idx, link := range links {
@@ -58,14 +61,15 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			if err != nil {
 				tx.Rollback()
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
-
+			out[idx].ShortURL = baseURL + "/" + shortURL
 		}
 
 		if err := tx.Commit(); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	} else {
 		// если это не БД, то сохраняем в файл или в мапу
@@ -73,7 +77,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			shortURL := functions.RandSeq(8)
 			handler.storage.AddHash(shortURL, link.OriginalURL, user)
 			out[idx].CorrelationID = link.CorrelationID
-			out[idx].ShortURL = functions.SchemeAndHost(c.Request) + "/" + shortURL
+			out[idx].ShortURL = baseURL + "/" + shortURL
 		}
 	}
 

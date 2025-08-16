@@ -10,6 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	successResponse = struct {
+		Result string `json:"result"`
+	}{}
+
+	conflictResponse = struct {
+		Result string `json:"result"`
+	}{}
+)
+
 func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	user, err := functions.GetUser(c)
 	if err != nil {
@@ -36,17 +46,18 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		}
 	}
 
+	baseURL := functions.SchemeAndHost(c.Request)
+
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
+		hashLink = baseURL + "/" + randStr
 	)
 
 	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
 	if err != nil {
 		if err.Error() == "conflict" {
-			resp, err := json.Marshal(map[string]string{
-				"result": functions.SchemeAndHost(c.Request) + "/" + shortURL,
-			})
+			conflictResponse.Result = baseURL + "/" + shortURL
+			resp, err := json.Marshal(conflictResponse)
 			if err != nil {
 				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 				return
@@ -61,7 +72,8 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
-	resp, err := json.Marshal(map[string]string{"result": hashLink})
+	successResponse.Result = hashLink
+	resp, err := json.Marshal(successResponse)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
