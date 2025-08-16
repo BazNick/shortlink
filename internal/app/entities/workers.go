@@ -4,7 +4,7 @@ import "database/sql"
 
 // DeleteRequest - удаление нескольких коротких URL конкретного пользователя.
 type DeleteRequest struct {
-	UserID    string // ID пользователя.
+	UserID    string   // ID пользователя.
 	ShortURLs []string // ShortURLs - слайс коротких ссылок
 }
 

@@ -19,9 +19,9 @@ type Claims struct {
 }
 
 const (
-	CookieName   = "token" // CookieName - название куки
-	CookiePath   = "/" // CookiePath - путь до куки
-	CookieDomain = "" // CookieDomain - область куки
+	CookieName   = "token"       // CookieName - название куки
+	CookiePath   = "/"           // CookiePath - путь до куки
+	CookieDomain = ""            // CookieDomain - область куки
 	TokenExp     = time.Hour * 3 // TokenExp - время жизни токена
 )
 
