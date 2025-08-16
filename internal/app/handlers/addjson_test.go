@@ -68,8 +68,8 @@ func TestPostJSONLink(t *testing.T) {
 			want: want{
 				method:       http.MethodPost,
 				body:         `{"url": "https://duplicate1.ru"}`,
-				expectedCode: http.StatusBadRequest,
-				expectResult: false,
+				expectedCode: http.StatusConflict,
+				expectResult: true,
 			},
 		},
 	}

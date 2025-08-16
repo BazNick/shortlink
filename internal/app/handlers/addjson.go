@@ -78,34 +78,28 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
+	baseURL := functions.SchemeAndHost(c.Request)
+
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(link.Link)
 		if alreadyExst {
-			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
-			return
+			existingShortURL := handler.getExistingShortURL(link.Link)
+			if existingShortURL != "" {
+				handler.sendConflictResponse(c, baseURL+"/"+existingShortURL)
+				return
+			}
 		}
 	}
 
-	baseURL := functions.SchemeAndHost(c.Request)
-
 	var (
-		randStr  = functions.RandSeq(8)    // генерируем случайную последовательность длиной 8 символов
-		hashLink = baseURL + "/" + randStr // формируем полную короткую ссылку
+		randStr  = functions.RandSeq(8)
+		hashLink = baseURL + "/" + randStr
 	)
 
 	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
 	if err != nil {
-		if err.Error() == "conflict" {
-			conflictResponse.Result = baseURL + "/" + shortURL
-			resp, err := json.Marshal(conflictResponse)
-			if err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			c.Writer.Header().Set("content-type", "application/json")
-			c.Writer.WriteHeader(http.StatusConflict)
-			c.Writer.Write(resp)
+		if err.Error() == apperr.ErrValAlreadyExists.Error() {
+			handler.sendConflictResponse(c, baseURL+"/"+shortURL)
 			return
 		}
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
@@ -119,7 +113,27 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
-	c.Writer.Header().Set("content-type", "application/json")
+	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write(resp)
+}
+
+func (handler *URLHandler) getExistingShortURL(originalURL string) string {
+	if hashDict, ok := handler.storage.(*entities.HashDict); ok {
+		return hashDict.RevDict[originalURL]
+	}
+	return ""
+}
+
+func (handler *URLHandler) sendConflictResponse(c *gin.Context, shortURL string) {
+	conflictResponse.Result = shortURL
+	resp, err := json.Marshal(conflictResponse)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	c.Writer.Header().Set("Content-Type", "application/json")
+	c.Writer.WriteHeader(http.StatusConflict)
 	c.Writer.Write(resp)
 }
