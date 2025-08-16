@@ -29,13 +29,16 @@ func (handler *URLHandler) GetUserLinks(c *gin.Context) {
 
 	defer rows.Close()
 
-	var result []entities.FileLinks
+	baseURL := functions.SchemeAndHost(c.Request)
+	result := make([]entities.FileLinks, 0, 10)
+
 	for rows.Next() {
 		var rec entities.FileLinks
 		if err := rows.Scan(&rec.ShortURL, &rec.OriginalURL); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+			return
 		}
-		rec.ShortURL = functions.SchemeAndHost(c.Request) + "/" + rec.ShortURL
+		rec.ShortURL = baseURL + "/" + rec.ShortURL
 		result = append(result, rec)
 	}
 
@@ -46,6 +49,7 @@ func (handler *URLHandler) GetUserLinks(c *gin.Context) {
 
 	if err := rows.Err(); err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	resp, err := json.Marshal(result)
