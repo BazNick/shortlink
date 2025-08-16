@@ -89,3 +89,58 @@ func TestGetLink(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkGetLink_Valid(b *testing.B) {
+	storage := entities.NewHashDict()
+	handler := NewURLHandler(
+		storage,
+		"test.json",
+		"postgres://user:password@localhost:5432/dbname",
+	)
+
+	randomStr := functions.RandSeq(8)
+	originalURL := "https://yandex.ru"
+	userID := "test"
+	storage.AddHash(randomStr, originalURL, userID)
+
+	router := gin.Default()
+	router.Any("/:id", func(c *gin.Context) {
+		if c.Request.Method != http.MethodGet {
+			c.AbortWithStatus(http.StatusMethodNotAllowed)
+			return
+		}
+		handler.GetLink(c)
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/"+randomStr, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, request)
+	}
+}
+
+func BenchmarkGetLink_Invalid(b *testing.B) {
+	storage := entities.NewHashDict()
+	handler := NewURLHandler(
+		storage,
+		"test.json",
+		"postgres://user:password@localhost:5432/dbname",
+	)
+
+	router := gin.Default()
+	router.Any("/:id", func(c *gin.Context) {
+		if c.Request.Method != http.MethodGet {
+			c.AbortWithStatus(http.StatusMethodNotAllowed)
+			return
+		}
+		handler.GetLink(c)
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/nonexistent", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, request)
+	}
+}

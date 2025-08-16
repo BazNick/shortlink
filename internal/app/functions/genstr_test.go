@@ -26,3 +26,21 @@ func TestRandSeq(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkRandSeq(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		RandSeq(8)
+	}
+}
+
+func BenchmarkRandSeq_Short(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		RandSeq(4)
+	}
+}
+
+func BenchmarkRandSeq_Long(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		RandSeq(16)
+	}
+}

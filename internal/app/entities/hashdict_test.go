@@ -174,3 +174,38 @@ func TestHashDict_GetHash(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkHashDict_AddHash(b *testing.B) {
+	hd := NewHashDict()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		hd.AddHash("hash"+string(rune(i)), "link"+string(rune(i)), "user"+string(rune(i)))
+	}
+}
+
+func BenchmarkHashDict_GetHash(b *testing.B) {
+	hd := NewHashDict()
+
+	for i := 0; i < 1000; i++ {
+		hd.AddHash("hash"+string(rune(i)), "link"+string(rune(i)), "user"+string(rune(i)))
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		hd.GetHash("hash" + string(rune(i%1000)))
+	}
+}
+
+func BenchmarkHashDict_CheckValExists(b *testing.B) {
+	hd := NewHashDict()
+
+	for i := 0; i < 1000; i++ {
+		hd.AddHash("hash"+string(rune(i)), "link"+string(rune(i)), "user"+string(rune(i)))
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		hd.CheckValExists("link" + string(rune(i%1000)))
+	}
+}
