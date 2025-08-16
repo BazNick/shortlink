@@ -7,7 +7,7 @@ import (
 	"github.com/BazNick/shortlink/internal/app/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
-
+// Структуры работы с хэндлерами.
 type (
 	// JSONLink представляет структуру JSON-запросов для сокращения ссылок.
 	// Содержит оригинальную ссылку, которую нужно сократить.

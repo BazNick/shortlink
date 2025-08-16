@@ -15,14 +15,14 @@ import (
 // Расширяет стандартные утверждения jwt.RegisteredClaims полем UserID.
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID string
+	UserID string // UserID - ID пользователя.
 }
 
 const (
-	CookieName   = "token"
-	CookiePath   = "/"
-	CookieDomain = ""
-	TokenExp     = time.Hour * 3
+	CookieName   = "token" // CookieName - название куки
+	CookiePath   = "/" // CookiePath - путь до куки
+	CookieDomain = "" // CookieDomain - область куки
+	TokenExp     = time.Hour * 3 // TokenExp - время жизни токена
 )
 
 func randBytes(n int) (string, error) {

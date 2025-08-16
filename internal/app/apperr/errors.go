@@ -2,6 +2,7 @@ package apperr
 
 import "errors"
 
+// Кастомные ошибки
 var (
 	// ErrLinkExists - попытка создать короткую ссылку для существующего оригинального URL.
 	ErrLinkExists = errors.New("link already exists")
