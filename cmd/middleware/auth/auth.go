@@ -18,6 +18,7 @@ type Claims struct {
 	UserID string // UserID - ID пользователя.
 }
 
+// Константы настроек кук
 const (
 	CookieName   = "token"       // CookieName - название куки
 	CookiePath   = "/"           // CookiePath - путь до куки

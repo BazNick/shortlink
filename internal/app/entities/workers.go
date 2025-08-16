@@ -38,7 +38,6 @@ var DeleteChan = make(chan DeleteRequest, 100)
 //	    UserID:    "user123",
 //	    ShortURLs: []string{"abc123", "def456"},
 //	}
-
 func StartDeleteWorkers(db *sql.DB, workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		go func(id int) {
