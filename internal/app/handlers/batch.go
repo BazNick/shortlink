@@ -38,7 +38,7 @@ func (handler *URLHandler) BatchLinks(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	out := make([]BatchOut, len(links))
 
 	// если это БД

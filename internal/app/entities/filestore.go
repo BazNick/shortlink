@@ -24,7 +24,7 @@ func NewFileStore(path string) *FileStore {
 		Path:  path,
 		cache: make(map[string]string),
 	}
-	
+
 	fs.loadCache()
 	return fs
 }
@@ -80,23 +80,23 @@ func (f *FileStore) AddHash(hash, link, userID string) (string, error) {
 func (f *FileStore) GetHash(hash string) string {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if link, exists := f.cache[hash]; exists {
 		return link
 	}
-	
+
 	return ""
 }
 
 func (f *FileStore) CheckValExists(link string) bool {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	for _, cachedLink := range f.cache {
 		if cachedLink == link {
 			return true
 		}
 	}
-	
+
 	return false
 }

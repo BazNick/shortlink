@@ -18,7 +18,7 @@ func SchemeAndHost(req *http.Request) string {
 		result.WriteString(req.Host)
 		return result.String()
 	}
-	
+
 	var result strings.Builder
 	result.Grow(len(httpPrefix) + len(req.Host))
 	result.WriteString(httpPrefix)

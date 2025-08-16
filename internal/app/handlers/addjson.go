@@ -14,7 +14,7 @@ var (
 	successResponse = struct {
 		Result string `json:"result"`
 	}{}
-	
+
 	conflictResponse = struct {
 		Result string `json:"result"`
 	}{}

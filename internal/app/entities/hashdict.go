@@ -1,8 +1,8 @@
 package entities
 
 type HashDict struct {
-	Dict map[string]string
-	RevDict  map[string]string
+	Dict    map[string]string
+	RevDict map[string]string
 }
 
 func NewHashDict() *HashDict {
