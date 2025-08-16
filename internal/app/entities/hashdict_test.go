@@ -20,6 +20,10 @@ func TestCheckValExists(t *testing.T) {
 					"key1": "value1",
 					"key2": "value2",
 				},
+				RevDict: map[string]string{
+					"value1": "key1",
+					"value2": "key2",
+				},
 			},
 			link: "value2",
 			want: true,
@@ -31,6 +35,10 @@ func TestCheckValExists(t *testing.T) {
 					"key1": "value1",
 					"key2": "value2",
 				},
+				RevDict: map[string]string{
+					"value1": "key1",
+					"value2": "key2",
+				},
 			},
 			link: "nonexistent_value",
 			want: false,
@@ -38,7 +46,8 @@ func TestCheckValExists(t *testing.T) {
 		{
 			name: "Empty hash dictionary",
 			hd: HashDict{
-				Dict: map[string]string{},
+				Dict:    map[string]string{},
+				RevDict: map[string]string{},
 			},
 			link: "any_value",
 			want: false,
@@ -64,7 +73,8 @@ func TestHashDict_AddHash(t *testing.T) {
 		{
 			name: "Adding a new key-value pair to an empty hash dictionary",
 			h: HashDict{
-				Dict: map[string]string{},
+				Dict:    map[string]string{},
+				RevDict: map[string]string{},
 			},
 			hash:   "new_key",
 			link:   "new_value",
@@ -76,6 +86,9 @@ func TestHashDict_AddHash(t *testing.T) {
 				Dict: map[string]string{
 					"existing_key": "existing_value",
 				},
+				RevDict: map[string]string{
+					"existing_value": "existing_key",
+				},
 			},
 			hash:   "another_new_key",
 			link:   "another_new_value",
@@ -86,6 +99,9 @@ func TestHashDict_AddHash(t *testing.T) {
 			h: HashDict{
 				Dict: map[string]string{
 					"existing_key": "old_value",
+				},
+				RevDict: map[string]string{
+					"old_value": "existing_key",
 				},
 			},
 			hash:   "existing_key",
@@ -117,6 +133,10 @@ func TestHashDict_GetHash(t *testing.T) {
 					"key1": "value1",
 					"key2": "value2",
 				},
+				RevDict: map[string]string{
+					"value1": "key1",
+					"value2": "key2",
+				},
 			},
 			hash: "key1",
 			want: "value1",
@@ -128,6 +148,10 @@ func TestHashDict_GetHash(t *testing.T) {
 					"key1": "value1",
 					"key2": "value2",
 				},
+				RevDict: map[string]string{
+					"value1": "key1",
+					"value2": "key2",
+				},
 			},
 			hash: "non_existing_key",
 			want: "",
@@ -135,7 +159,8 @@ func TestHashDict_GetHash(t *testing.T) {
 		{
 			name: "Getting value from an empty hash dictionary",
 			h: HashDict{
-				Dict: map[string]string{},
+				Dict:    map[string]string{},
+				RevDict: map[string]string{},
 			},
 			hash: "any_key",
 			want: "",
