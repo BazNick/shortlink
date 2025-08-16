@@ -11,6 +11,69 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// BatchLinks обрабатывает HTTP-запросы POST для создания нескольких коротких URL в рамках одного пакетного запроса.
+// Принимает массив JSON с исходными URL и возвращает массив с короткими URL и соответствующими идентификационными номерами запросов.
+//
+// Ожидает:
+//   - метод HTTP POST (возвращает 405 Method Not Allowed для прочих методов)
+//   - тело запроса в формате JSON, содержащее массив объектов BatchIn
+//   - валидную аутентификацию пользователя (получаемую из контекста запроса)
+//
+// Формат запроса:
+//
+//	[
+//	  {
+//	    "correlation_id": "req-1",
+//	    "original_url": "https://example1.com"
+//	  },
+//	  {
+//	    "correlation_id": "req-2",
+//	    "original_url": "https://example2.com"
+//	  }
+//	]
+//
+// Формат ответа:
+//
+//	[
+//	  {
+//	    "correlation_id": "req-1",
+//	    "short_url": "https://shortener.com/abc123"
+//	  },
+//	  {
+//	    "correlation_id": "req-2",
+//	    "short_url": "https://shortener.com/def456"
+//	  }
+//	]
+//
+// Возможные ответы:
+//   - 201 Created: если все короткие URL были успешно созданы
+//   - 400 Bad Request: если запрос неверен, пользователь невалиден или какая-то из URL уже существует
+//   - 405 Method Not Allowed: если метод запроса не POST
+//   - 500 Internal Server Error: если произошли ошибки в работе с БД
+//
+// Функционал:
+//   - Проверяет, что ни одна из URL пакета заранее не существует
+//   - Для хранения в БД применяет транзакции, обеспечивая атомарность операций
+//
+// Пример:
+//
+//	POST /api/shorten/batch
+//	Content-Type: application/json
+//	[
+//	  {
+//	    "correlation_id": "req-1",
+//	    "original_url": "https://example1.com"
+//	  }
+//	]
+//
+//	Ответ: 201 Created
+//	Content-Type: application/json
+//	[
+//	  {
+//	    "correlation_id": "req-1",
+//	    "short_url": "https://shortener.com/abc123"
+//	  }
+//	]
 func (handler *URLHandler) BatchLinks(c *gin.Context) {
 	user, err := functions.GetUser(c)
 	if err != nil {

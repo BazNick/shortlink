@@ -10,6 +10,7 @@ var (
 	httpsPrefix = "https://"
 )
 
+// SchemeAndHost - получаем хоста и протокол запроса (http или https)
 func SchemeAndHost(req *http.Request) string {
 	if req.TLS != nil {
 		var result strings.Builder
