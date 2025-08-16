@@ -19,11 +19,11 @@ import (
 //
 //	randomStr := RandSeq(8) // Возвращает случайную строку длиной 8 символов
 func RandSeq(n int) string {
-    b := make([]byte, n)       // создаем массив байтов нужной длины
-    _, err := rand.Read(b)     // заполняем массив случайными значениями
-    if err != nil {
-        panic(err)        
-    }
+	b := make([]byte, n)   // создаем массив байтов нужной длины
+	_, err := rand.Read(b) // заполняем массив случайными значениями
+	if err != nil {
+		panic(err)
+	}
 
-    return hex.EncodeToString(b)[:n] // преобразуем в HEX-кодировку и усекаем до нужной длины
+	return hex.EncodeToString(b)[:n] // преобразуем в HEX-кодировку и усекаем до нужной длины
 }

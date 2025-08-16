@@ -25,23 +25,23 @@ import (
 //	GET /abc123
 //	Ответ: 307 Temporary Redirect с заголовком Location, установленным на оригинальный URL
 func (handler *URLHandler) GetLink(c *gin.Context) {
-    if c.Request.Method != http.MethodGet {
-        http.Error(c.Writer, apperr.ErrOnlyGET.Error(), http.StatusMethodNotAllowed)
-        return
-    }
+	if c.Request.Method != http.MethodGet {
+		http.Error(c.Writer, apperr.ErrOnlyGET.Error(), http.StatusMethodNotAllowed)
+		return
+	}
 
-    var (
-        id     = c.Param("id")           // извлекаем id короткого URL из маршрута
-        pageID = handler.storage.GetHash(id) // получаем оригинальную ссылку по указанному хэшу
-    )
+	var (
+		id     = c.Param("id")               // извлекаем id короткого URL из маршрута
+		pageID = handler.storage.GetHash(id) // получаем оригинальную ссылку по указанному хэшу
+	)
 
-    if pageID == "" { // если оригинальная ссылка не найдена
-        http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusGone)
-        return
-    }
+	if pageID == "" { // если оригинальная ссылка не найдена
+		http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusGone)
+		return
+	}
 
-    // устанавливаем заголовки для временной переадресации
-    c.Writer.Header().Set("Location", pageID)
-    c.Writer.Header().Set("Content-Type", "text/html")
-    c.Writer.WriteHeader(http.StatusTemporaryRedirect)
+	// устанавливаем заголовки для временной переадресации
+	c.Writer.Header().Set("Location", pageID)
+	c.Writer.Header().Set("Content-Type", "text/html")
+	c.Writer.WriteHeader(http.StatusTemporaryRedirect)
 }
