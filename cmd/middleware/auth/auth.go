@@ -25,6 +25,14 @@ const (
 	TokenExp     = time.Hour * 3 // TokenExp - время жизни токена
 )
 
+// randBytes генерирует случайную строку UUID-подобного формата указанной длины.
+//
+// Параметры:
+//   - n: количество случайных байтов для генерации
+//
+// Возвращает:
+//   - string: строка в формате UUID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+//   - error: возможные ошибки, возникшие при генерации
 func randBytes(n int) (string, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)

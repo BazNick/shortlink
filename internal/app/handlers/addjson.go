@@ -80,6 +80,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 
 	baseURL := functions.SchemeAndHost(c.Request)
 
+	// Check for conflicts in non-database storage (HashDict, FileStore)
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(link.Link)
 		if alreadyExst {
@@ -88,6 +89,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 				handler.sendConflictResponse(c, baseURL+"/"+existingShortURL)
 				return
 			}
+			// If URL exists but we can't find the short URL, continue with creation
 		}
 	}
 
@@ -98,7 +100,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 
 	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
 	if err != nil {
-		if err.Error() == apperr.ErrValAlreadyExists.Error() {
+		if err == apperr.ErrValAlreadyExists {
 			handler.sendConflictResponse(c, baseURL+"/"+shortURL)
 			return
 		}

@@ -77,7 +77,7 @@ func (handler *URLHandler) AddLink(c *gin.Context) {
 
 	shortURL, err := handler.storage.AddHash(randStr, string(body), user)
 	if err != nil {
-		if err.Error() == apperr.ErrValAlreadyExists.Error() {
+		if err == apperr.ErrValAlreadyExists {
 			c.Writer.WriteHeader(http.StatusConflict)
 			c.Writer.Write([]byte(functions.SchemeAndHost(c.Request) + "/" + shortURL))
 			return
