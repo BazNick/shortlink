@@ -9,16 +9,16 @@ import (
 
 // FileLinks - хранение данных в файле.
 type FileLinks struct {
-	ShortURL    string `json:"short_url"`    
+	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
 // FileStore - реализацию хранилища на основе файла для сопоставления URL.
 type FileStore struct {
-	Path        string           
-	FileStorage *os.File         
-	mu          sync.RWMutex    
-	cache       map[string]string 
+	Path        string
+	FileStorage *os.File
+	mu          sync.RWMutex
+	cache       map[string]string
 }
 
 // NewFileStore создаёт новый экземпляр хранилища на основе файла.

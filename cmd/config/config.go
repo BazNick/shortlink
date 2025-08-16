@@ -9,11 +9,11 @@ import (
 
 // Config хранит настройки конфигурации приложения.
 type Config struct {
-    Address   string `env:"ADDRESS"`           // Адрес HTTP-сервера
-    BaseURL   string `env:"BASE_URL"`          // Базовый URL сервиса
-    FilePath  string `env:"FILE_STORAGE_PATH"` // Путь к файлам хранилища
-    DB        string `env:"DATABASE_DSN"`      // Строка подключения к базе данных
-    SecretKey string `env:"SECRET_KEY"`        // Секретный ключ для JWT-токенов
+	Address   string `env:"ADDRESS"`           // Адрес HTTP-сервера
+	BaseURL   string `env:"BASE_URL"`          // Базовый URL сервиса
+	FilePath  string `env:"FILE_STORAGE_PATH"` // Путь к файлам хранилища
+	DB        string `env:"DATABASE_DSN"`      // Строка подключения к базе данных
+	SecretKey string `env:"SECRET_KEY"`        // Секретный ключ для JWT-токенов
 }
 
 // GetCLParams считывает конфигурационные параметры из переменных среды и аргументов командной строки.
