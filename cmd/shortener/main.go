@@ -20,9 +20,9 @@ func main() {
 		router  = gin.Default()
 		storage storage.Storage
 	)
-
+  
 	pprof.Register(router)
-
+  
 	switch {
 	case conf.DB != "":
 		db := entities.NewDB(conf.DB)
