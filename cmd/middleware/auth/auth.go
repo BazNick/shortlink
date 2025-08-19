@@ -11,18 +11,29 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Claims - структура утверждений JWT-токенов.
+// Расширяет стандартные утверждения jwt.RegisteredClaims полем UserID.
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID string
+	UserID string // UserID - ID пользователя.
 }
 
+// Константы настроек кук
 const (
-	CookieName   = "token"
-	CookiePath   = "/"
-	CookieDomain = ""
-	TokenExp     = time.Hour * 3
+	CookieName   = "token"       // CookieName - название куки
+	CookiePath   = "/"           // CookiePath - путь до куки
+	CookieDomain = ""            // CookieDomain - область куки
+	TokenExp     = time.Hour * 3 // TokenExp - время жизни токена
 )
 
+// randBytes генерирует случайную строку UUID-подобного формата указанной длины.
+//
+// Параметры:
+//   - n: количество случайных байтов для генерации
+//
+// Возвращает:
+//   - string: строка в формате UUID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+//   - error: возможные ошибки, возникшие при генерации
 func randBytes(n int) (string, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
@@ -33,6 +44,26 @@ func randBytes(n int) (string, error) {
 	return uuid, nil
 }
 
+// Auth создаёт промежуточную функцию для Gin, реализующую аутентификацию на основе JWT.
+// Она управляет созданием, проверкой и передачей токенов и идентификации пользователей.
+//
+// Параметры:
+//   - secret: секретный ключ, используемый для подписания и проверки JWT-токенов
+//
+// Возвращает:
+//   - gin.HandlerFunc: промежуточную функцию
+//
+// Промежуточная логика:
+//   - Проверяет наличие действующего токена аутентификации в куках
+//   - Валидирует токен, если таковой имеется
+//   - Генерирует новый токен, если старый отсутствует или проверка провалилась
+//   - Присваивает идентификатор пользователя (userID) для последующих обработчиков
+//   - Устанавливает куки с токеном аутентификации в ответ
+//
+// Пример:
+//
+//	router := gin.Default()
+//	router.Use(auth.Auth("your-secret-key"))
 func Auth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie, err := c.Cookie(CookieName)
@@ -73,6 +104,27 @@ func Auth(secret string) gin.HandlerFunc {
 	}
 }
 
+// GenToken генерирует новый JWT-токен с уникальным идентификатором пользователя.
+//
+// Параметры:
+//   - secretKey: секретный ключ, используемый для подписания JWT-токена
+//
+// Возвращает:
+//   - string: строковая форма нового JWT-токена
+//   - error: возможные ошибки, возникшие при создании токена
+//
+// Функция:
+//   - Генерирует случайный 16-байтовый идентификатор пользователя
+//   - Создаёт JWT-токен с подписывающим методом HS256
+//   - Устанавливает срок годности токена равным TokenExp (3 часа)
+//   - Подписывает токен с помощью переданного секретного ключа
+//
+// Пример:
+//
+//	token, err := GenToken("your-secret-key")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func GenToken(secretKey string) (string, error) {
 	// генерируем последовательность рандомных байт для ID пользователя
 	id, err := randBytes(16)
@@ -95,6 +147,29 @@ func GenToken(secretKey string) (string, error) {
 	return tokenString, nil
 }
 
+// ParseToken проверяет и парсит JWT-токен.
+//
+// Параметры:
+//   - tokenStr: строка с JWT-токеном
+//   - secret: секретный ключ, используемый для проверки токена
+//
+// Возвращает:
+//   - *Claims: разобранные утверждения токена, если он действителен
+//   - error: сообщение "invalid token", если токен недействителен или просрочен
+//
+// Функция:
+//   - Анализирует JWT-токен с использованием переданного секретного ключа
+//   - Проверяет подпись и срок действия токена
+//   - Возвращает утверждения токена, если он действительный
+//
+// Пример:
+//
+//	claims, err := ParseToken(tokenString, "secret-key")
+//	if err != nil {
+//	    log.Printf("Недействительный токен: %v", err)
+//	    return
+//	}
+//	fmt.Printf("Идентификатор пользователя: %s\n", claims.UserID)
 func ParseToken(tokenStr, secret string) (*Claims, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(

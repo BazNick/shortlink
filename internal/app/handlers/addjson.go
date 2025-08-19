@@ -10,6 +10,56 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	successResponse = struct {
+		Result string `json:"result"`
+	}{}
+
+	conflictResponse = struct {
+		Result string `json:"result"`
+	}{}
+)
+
+// PostJSONLink обрабатывает HTTP-запросы типа POST для создания коротких ссылок из JSON-данных.
+// Принять JSON-полезную нагрузку с оригинальной ссылкой и вернуть JSON-ответ,
+// содержащий сгенерированную короткую ссылку.
+//
+// Метод ожидает:
+//   - метод HTTP POST (возвращает 405 Method Not Allowed для остальных методов)
+//   - тело запроса в формате JSON с полем "url", содержащим оригинальную ссылку
+//   - валидная аутентификация пользователя (извлекается из контекста запроса)
+//
+// Формат запроса:
+//
+//	{
+//	  "url": "https://example.com/very/long/url"
+//	}
+//
+// Формат ответа:
+//
+//	{
+//	  "result": "https://shortener.ru/abc12345"
+//	}
+//
+// Возможные ответы:
+//   - 201 Created: если короткая ссылка успешно создана
+//   - 409 Conflict: если ссылка уже существует (возвращает существующую короткую ссылку)
+//   - 400 Bad Request: если запрос некорректен или пользователь недействителен
+//   - 405 Method Not Allowed: если метод запроса не POST
+//   - 500 Internal Server Error: если операция с хранилищем завершилась неудачей
+//
+// Пример:
+//
+//	POST /api/shorten
+//	Content-Type: application/json
+//	{
+//	  "url": "https://example.com/very/long/url"
+//	}
+//
+//	Ответ: 201 Created
+//	{
+//	  "result": "https://shortener.ru/abc12345"
+//	}
 func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 	user, err := functions.GetUser(c)
 	if err != nil {
@@ -28,46 +78,64 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 		return
 	}
 
+	baseURL := functions.SchemeAndHost(c.Request)
+
+	// Check for conflicts in non-database storage (HashDict, FileStore)
 	if _, ok := handler.storage.(*entities.DB); !ok {
 		alreadyExst := handler.storage.CheckValExists(link.Link)
 		if alreadyExst {
-			http.Error(c.Writer, apperr.ErrLinkExists.Error(), http.StatusBadRequest)
-			return
+			existingShortURL := handler.getExistingShortURL(link.Link)
+			if existingShortURL != "" {
+				handler.sendConflictResponse(c, baseURL+"/"+existingShortURL)
+				return
+			}
+			// If URL exists but we can't find the short URL, continue with creation
 		}
 	}
 
 	var (
 		randStr  = functions.RandSeq(8)
-		hashLink = functions.SchemeAndHost(c.Request) + "/" + randStr
+		hashLink = baseURL + "/" + randStr
 	)
 
 	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
 	if err != nil {
-		if err.Error() == "conflict" {
-			resp, err := json.Marshal(map[string]string{
-				"result": functions.SchemeAndHost(c.Request) + "/" + shortURL,
-			})
-			if err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			c.Writer.Header().Set("content-type", "application/json")
-			c.Writer.WriteHeader(http.StatusConflict)
-			c.Writer.Write(resp)
+		if err == apperr.ErrValAlreadyExists {
+			handler.sendConflictResponse(c, baseURL+"/"+shortURL)
 			return
 		}
 		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := json.Marshal(map[string]string{"result": hashLink})
+	successResponse.Result = hashLink
+	resp, err := json.Marshal(successResponse)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	c.Writer.Header().Set("content-type", "application/json")
+	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(http.StatusCreated)
+	c.Writer.Write(resp)
+}
+
+func (handler *URLHandler) getExistingShortURL(originalURL string) string {
+	if hashDict, ok := handler.storage.(*entities.HashDict); ok {
+		return hashDict.RevDict[originalURL]
+	}
+	return ""
+}
+
+func (handler *URLHandler) sendConflictResponse(c *gin.Context, shortURL string) {
+	conflictResponse.Result = shortURL
+	resp, err := json.Marshal(conflictResponse)
+	if err != nil {
+		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	c.Writer.Header().Set("Content-Type", "application/json")
+	c.Writer.WriteHeader(http.StatusConflict)
 	c.Writer.Write(resp)
 }

@@ -9,6 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DBPingConn обрабатывает HTTP-запросы GET для тестирования доступности БД.
+// Пример:
+//
+//	GET /ping
+//
+//	Ответ: 200 OK (если доступ к базе данных возможен)
+//	Ответ: 500 Internal Server Error (если доступ к базе данных невозможен)
 func (handler *URLHandler) DBPingConn(c *gin.Context) {
 	db, err := sql.Open("pgx", handler.dbPath)
 	if err != nil {

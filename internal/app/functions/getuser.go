@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetUser - получаем пользователя из запроса.
 func GetUser(c *gin.Context) (string, error) {
 	uid, ok := c.Get("userID")
 	if !ok {

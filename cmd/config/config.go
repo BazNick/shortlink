@@ -7,14 +7,39 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// Config хранит настройки конфигурации приложения.
 type Config struct {
-	Address   string `env:"ADDRESS"`
-	BaseURL   string `env:"BASE_URL"`
-	FilePath  string `env:"FILE_STORAGE_PATH"`
-	DB        string `env:"DATABASE_DSN"`
-	SecretKey string `env:"SECRET_KEY"`
+	Address   string `env:"ADDRESS"`           // Адрес HTTP-сервера
+	BaseURL   string `env:"BASE_URL"`          // Базовый URL сервиса
+	FilePath  string `env:"FILE_STORAGE_PATH"` // Путь к файлам хранилища
+	DB        string `env:"DATABASE_DSN"`      // Строка подключения к базе данных
+	SecretKey string `env:"SECRET_KEY"`        // Секретный ключ для JWT-токенов
 }
 
+// GetCLParams считывает конфигурационные параметры из переменных среды и аргументов командной строки.
+// Возвращает заполненную структуру Config с настройками.
+//
+// Поддерживаемые переменные среды:
+//   - ADDRESS: адрес HTTP-сервера
+//   - BASE_URL: базовый URL сервиса
+//   - FILE_STORAGE_PATH: путь к файлам хранилища
+//   - DATABASE_DSN: строка подключения к базе данных
+//   - SECRET_KEY: секретный ключ для JWT-токенов
+//
+// Поддерживаемые аргументы командной строки:
+//   - -a: адрес HTTP-сервера (по умолчанию: localhost:8080)
+//   - -b: базовый URL (по умолчанию: http://localhost:8080)
+//   - -f: путь к файлам хранилища
+//   - -d: настройка подключения к базе данных
+//   - -k: секретный ключ для JWT-токенов
+//
+// Возвращает:
+//   - Config: структуру конфигурации с установленными параметрами
+//
+// Пример:
+//
+//	config := GetCLParams()
+//	fmt.Printf("Сервер запустится на адресе: %s\n", config.Address)
 func GetCLParams() Config {
 	var config Config
 
