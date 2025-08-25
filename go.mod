@@ -9,7 +9,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/tools v0.22.0
-	honnef.co/go/tools v0.6.1
 )
 
 require (
