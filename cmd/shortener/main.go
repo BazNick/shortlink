@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"runtime"
 
 	"github.com/BazNick/shortlink/cmd/config"
@@ -16,10 +17,16 @@ import (
 
 func main() {
 	var (
-		conf    = config.GetCLParams()
+		conf    config.Config
 		router  = gin.Default()
 		storage storage.Storage
+		err     error
 	)
+
+	conf, err = config.GetCLParams()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	pprof.Register(router)
 
@@ -48,6 +55,7 @@ func main() {
 	)
 
 	router.Use(
+		logger.WithLogging(),
 		logger.WithLogging(),
 		compress.GzipHandle(),
 		auth.Auth(conf.SecretKey),
