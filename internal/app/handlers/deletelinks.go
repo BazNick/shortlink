@@ -53,9 +53,11 @@ func (handler *URLHandler) DeleteUserLinks(c *gin.Context) {
 		return
 	}
 
-	entities.DeleteChan <- entities.DeleteRequest{
-		UserID:    user,
-		ShortURLs: links,
+	if handler.workerManager != nil {
+		handler.workerManager.SendDeleteRequest(entities.DeleteRequest{
+			UserID:    user,
+			ShortURLs: links,
+		})
 	}
 
 	c.Writer.WriteHeader(http.StatusAccepted)

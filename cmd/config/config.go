@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env/v11"
 )
@@ -35,22 +34,26 @@ type Config struct {
 //
 // Возвращает:
 //   - Config: структуру конфигурации с установленными параметрами
+//   - error: ошибку, если не удалось считать параметры
 //
 // Пример:
 //
-//	config := GetCLParams()
-//	fmt.Printf("Сервер запустится на адресе: %s\n", config.Address)
-func GetCLParams() Config {
+//	config, err := GetCLParams()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Running server on address: %s\n", config.Address)
+func GetCLParams() (Config, error) {
 	var config Config
 
 	err := env.Parse(&config)
 
 	if err != nil {
-		log.Fatal(err)
+		return Config{}, err
 	}
 
 	if config.BaseURL != "" && config.Address != "" {
-		return config
+		return config, nil
 	}
 
 	if config.FilePath == "" {
@@ -70,5 +73,5 @@ func GetCLParams() Config {
 
 	flag.Parse()
 
-	return config
+	return config, nil
 }

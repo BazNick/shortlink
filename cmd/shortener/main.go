@@ -1,7 +1,8 @@
 package main
 
 import (
-	"runtime"
+	"fmt"
+	"log"
 
 	"github.com/BazNick/shortlink/cmd/config"
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
@@ -14,12 +15,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	printBuildInfo()
+
 	var (
-		conf    = config.GetCLParams()
+		conf    config.Config
 		router  = gin.Default()
 		storage storage.Storage
+		err     error
 	)
+
+	conf, err = config.GetCLParams()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	pprof.Register(router)
 
@@ -27,8 +42,6 @@ func main() {
 	case conf.DB != "":
 		db := entities.NewDB(conf.DB)
 		storage = db
-
-		entities.StartDeleteWorkers(db.Database, runtime.NumCPU())
 
 		defer db.Database.Close()
 	case conf.FilePath != "":
@@ -49,6 +62,7 @@ func main() {
 
 	router.Use(
 		logger.WithLogging(),
+		logger.WithLogging(),
 		compress.GzipHandle(),
 		auth.Auth(conf.SecretKey),
 	)
@@ -62,4 +76,25 @@ func main() {
 	router.DELETE("/api/user/urls", urlHandler.DeleteUserLinks)
 
 	router.Run(conf.Address)
+}
+
+func printBuildInfo() {
+	version := buildVersion
+	if version == "" {
+		version = "N/A"
+	}
+
+	date := buildDate
+	if date == "" {
+		date = "N/A"
+	}
+
+	commit := buildCommit
+	if commit == "" {
+		commit = "N/A"
+	}
+
+	fmt.Printf("Build version: %s\n", version)
+	fmt.Printf("Build date: %s\n", date)
+	fmt.Printf("Build commit: %s\n", commit)
 }

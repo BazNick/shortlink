@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"runtime"
 
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/storage"
@@ -19,10 +20,11 @@ type (
 	// URLHandler обрабатывает HTTP-запросы для операций сокращения ссылок.
 	// Предоставляет методы для создания коротких ссылок и перенаправления на оригинальные.
 	URLHandler struct {
-		storage storage.Storage // Интерфейс хранения для сопоставления ссылок
-		path    string          // Путь к файлу для файлового хранилища
-		dbPath  string          // Строка подключения базы данных
-		db      *sql.DB         // Подключение к базе данных (если используется хранение в БД)
+		storage       storage.Storage               // Интерфейс хранения для сопоставления ссылок
+		path          string                        // Путь к файлу для файлового хранилища
+		dbPath        string                        // Строка подключения базы данных
+		db            *sql.DB                       // Подключение к базе данных (если используется хранение в БД)
+		workerManager *entities.DeleteWorkerManager // Менеджер для асинхронного удаления
 	}
 
 	// BatchIn представляет одну ссылку в множественном запросе на сокращение.
@@ -60,16 +62,22 @@ func NewURLHandler(
 	filePath, dbPath string,
 ) *URLHandler {
 	var db *sql.DB
+	var workerManager *entities.DeleteWorkerManager
 
 	if dbStorage, ok := storage.(*entities.DB); ok {
 		db = dbStorage.Database
+		// Создаем менеджер воркеров только если есть подключение к БД
+		workerManager = entities.NewDeleteWorkerManager(db, 100)
+		// Запускаем воркеры для обработки запросов на удаление
+		workerManager.StartDeleteWorkers(runtime.NumCPU())
 	}
 
 	handler := &URLHandler{
-		storage: storage,
-		path:    filePath,
-		dbPath:  dbPath,
-		db:      db,
+		storage:       storage,
+		path:          filePath,
+		dbPath:        dbPath,
+		db:            db,
+		workerManager: workerManager,
 	}
 
 	return handler

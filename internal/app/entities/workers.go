@@ -8,19 +8,29 @@ type DeleteRequest struct {
 	ShortURLs []string // ShortURLs - слайс коротких ссылок
 }
 
-// DeleteChan - буферизованный канало для асинхронной обработки запросов на удаление.
-var DeleteChan = make(chan DeleteRequest, 100)
+// DeleteWorkerManager управляет горутинами для асинхронной обработки запросов на удаление.
+type DeleteWorkerManager struct {
+	deleteChan chan DeleteRequest
+	db         *sql.DB
+}
+
+// NewDeleteWorkerManager создает новый экземпляр DeleteWorkerManager.
+func NewDeleteWorkerManager(db *sql.DB, bufferSize int) *DeleteWorkerManager {
+	return &DeleteWorkerManager{
+		deleteChan: make(chan DeleteRequest, bufferSize),
+		db:         db,
+	}
+}
 
 // StartDeleteWorkers запускает указанное количество горутин для обработки запросов на удаление.
-// Каждая горутина прослушивает канал DeleteChan и помечает URL как удалённые в БД.
+// Каждая горутина прослушивает канал и помечает URL как удалённые в БД.
 //
 // Параметры:
-//   - db: подключение к БД для выполнения операций удаления
 //   - workerCount: число запускаемых горутин
 //
 // Функция:
 //   - Запускает указанное количество горутин
-//   - Каждая горутина слушает DeleteChan на предмет поступающих запросов на удаление
+//   - Каждая горутина слушает канал на предмет поступающих запросов на удаление
 //   - Горутины выполняют SQL-команды обновления для пометки URL как удалённые
 //   - Генерирует panic, если возникают ошибки в операциях с базой данных
 //
@@ -30,19 +40,19 @@ var DeleteChan = make(chan DeleteRequest, 100)
 //
 // Пример:
 //
-//	db := getDatabaseConnection()
-//	StartDeleteWorkers(db, 5) // Запустить 5 горутин
+//	manager := NewDeleteWorkerManager(db, 100)
+//	manager.StartDeleteWorkers(5) // Запустить 5 горутин
 //
 //	// Отправить запрос на удаление
-//	DeleteChan <- DeleteRequest{
+//	manager.SendDeleteRequest(DeleteRequest{
 //	    UserID:    "user123",
 //	    ShortURLs: []string{"abc123", "def456"},
-//	}
-func StartDeleteWorkers(db *sql.DB, workerCount int) {
+//	})
+func (dwm *DeleteWorkerManager) StartDeleteWorkers(workerCount int) {
 	for i := 0; i < workerCount; i++ {
 		go func(id int) {
-			for req := range DeleteChan {
-				_, err := db.Exec(
+			for req := range dwm.deleteChan {
+				_, err := dwm.db.Exec(
 					`UPDATE links SET is_deleted = true WHERE user_id = $1 AND short_url = ANY($2);`,
 					req.UserID,
 					req.ShortURLs,
@@ -53,4 +63,14 @@ func StartDeleteWorkers(db *sql.DB, workerCount int) {
 			}
 		}(i)
 	}
+}
+
+// SendDeleteRequest отправляет запрос на удаление в канал для обработки.
+func (dwm *DeleteWorkerManager) SendDeleteRequest(req DeleteRequest) {
+	dwm.deleteChan <- req
+}
+
+// Close закрывает канал и останавливает все горутины.
+func (dwm *DeleteWorkerManager) Close() {
+	close(dwm.deleteChan)
 }
