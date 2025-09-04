@@ -24,7 +24,7 @@ var (
 )
 
 func main() {
-	printBuildInfo()
+	buildInfo()
 
 	var (
 		conf    config.Config
@@ -127,7 +127,7 @@ func startServer(router *gin.Engine, conf config.Config) error {
 	return server.ListenAndServe()
 }
 
-func printBuildInfo() {
+func buildInfo() {
 	version := buildVersion
 	if version == "" {
 		version = "N/A"
