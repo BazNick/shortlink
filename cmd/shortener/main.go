@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+
 	"github.com/BazNick/shortlink/cmd/config"
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
@@ -125,6 +126,27 @@ func startServer(router *gin.Engine, conf config.Config) error {
 
 	fmt.Printf("Starting HTTP server on %s\n", conf.Address)
 	return server.ListenAndServe()
+}
+
+func printBuildInfo() {
+	version := buildVersion
+	if version == "" {
+		version = "N/A"
+	}
+
+	date := buildDate
+	if date == "" {
+		date = "N/A"
+	}
+
+	commit := buildCommit
+	if commit == "" {
+		commit = "N/A"
+	}
+
+	fmt.Printf("Build version: %s\n", version)
+	fmt.Printf("Build date: %s\n", date)
+	fmt.Printf("Build commit: %s\n", commit)
 }
 
 func printBuildInfo() {
