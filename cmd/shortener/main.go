@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+
 	"github.com/BazNick/shortlink/cmd/config"
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
