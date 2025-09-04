@@ -8,11 +8,14 @@ import (
 
 // Config хранит настройки конфигурации приложения.
 type Config struct {
-	Address   string `env:"ADDRESS"`           // Адрес HTTP-сервера
-	BaseURL   string `env:"BASE_URL"`          // Базовый URL сервиса
-	FilePath  string `env:"FILE_STORAGE_PATH"` // Путь к файлам хранилища
-	DB        string `env:"DATABASE_DSN"`      // Строка подключения к базе данных
-	SecretKey string `env:"SECRET_KEY"`        // Секретный ключ для JWT-токенов
+	Address     string `env:"ADDRESS"`           // Адрес HTTP-сервера
+	BaseURL     string `env:"BASE_URL"`          // Базовый URL сервиса
+	FilePath    string `env:"FILE_STORAGE_PATH"` // Путь к файлам хранилища
+	DB          string `env:"DATABASE_DSN"`      // Строка подключения к базе данных
+	SecretKey   string `env:"SECRET_KEY"`        // Секретный ключ для JWT-токенов
+	EnableHTTPS bool   `env:"ENABLE_HTTPS"`      // Включить HTTPS сервер
+	CertFile    string `env:"CERT_FILE"`         // Путь к файлу сертификата
+	KeyFile     string `env:"KEY_FILE"`          // Путь к файлу приватного ключа
 }
 
 // GetCLParams считывает конфигурационные параметры из переменных среды и аргументов командной строки.
@@ -24,6 +27,9 @@ type Config struct {
 //   - FILE_STORAGE_PATH: путь к файлам хранилища
 //   - DATABASE_DSN: строка подключения к базе данных
 //   - SECRET_KEY: секретный ключ для JWT-токенов
+//   - ENABLE_HTTPS: включить HTTPS сервер (true/false)
+//   - CERT_FILE: путь к файлу сертификата
+//   - KEY_FILE: путь к файлу приватного ключа
 //
 // Поддерживаемые аргументы командной строки:
 //   - -a: адрес HTTP-сервера (по умолчанию: localhost:8080)
@@ -31,6 +37,9 @@ type Config struct {
 //   - -f: путь к файлам хранилища
 //   - -d: настройка подключения к базе данных
 //   - -k: секретный ключ для JWT-токенов
+//   - -s: включить HTTPS сервер
+//   - -cert: путь к файлу сертификата
+//   - -key: путь к файлу приватного ключа
 //
 // Возвращает:
 //   - Config: структуру конфигурации с установленными параметрами
@@ -68,8 +77,17 @@ func GetCLParams() (Config, error) {
 		flag.StringVar(&config.SecretKey, "k", "", "secret key for jwt token")
 	}
 
+	if config.CertFile == "" {
+		flag.StringVar(&config.CertFile, "cert", "", "path to certificate file")
+	}
+
+	if config.KeyFile == "" {
+		flag.StringVar(&config.KeyFile, "key", "", "path to private key file")
+	}
+
 	flag.StringVar(&config.Address, "a", "localhost:8080", "http server adress")
 	flag.StringVar(&config.BaseURL, "b", "http://localhost:8080", "base URL")
+	flag.BoolVar(&config.EnableHTTPS, "s", false, "enable HTTPS server")
 
 	flag.Parse()
 
