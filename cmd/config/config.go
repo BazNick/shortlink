@@ -137,10 +137,9 @@ func applyJSONConfig(config *Config, jsonConfig JSONConfig) {
 //	fmt.Printf("Running server on address: %s\n", config.Address)
 func GetCLParams() (Config, error) {
 	var config Config
-	var configFile string
+	configFile := os.Getenv("CONFIG")
 
 	// Сначала определяем путь к конфигурационному файлу из переменной среды
-	configFile = os.Getenv("CONFIG")
 
 	// Определяем флаги командной строки
 	flag.StringVar(&configFile, "c", configFile, "path to JSON config file")
