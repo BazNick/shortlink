@@ -33,4 +33,12 @@ type Storage interface {
 	// Возвращает:
 	//   - bool: true, если ссылка существует, false — в противном случае
 	CheckValExists(link string) bool
+
+	// GetStats возвращает статистику хранилища.
+	//
+	// Возвращает:
+	//   - urls: количество сокращённых URL в сервисе
+	//   - users: количество пользователей в сервисе
+	//   - error: любая ошибка, возникшая при получении статистики
+	GetStats() (urls int, users int, err error)
 }

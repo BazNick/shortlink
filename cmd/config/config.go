@@ -16,18 +16,20 @@ type JSONConfig struct {
 	FileStoragePath string `json:"file_storage_path"` // Путь к файлам хранилища
 	DatabaseDSN     string `json:"database_dsn"`      // Строка подключения к базе данных
 	EnableHTTPS     bool   `json:"enable_https"`      // Включить HTTPS сервер
+	TrustedSubnet   string `json:"trusted_subnet"`    // Доверенная подсеть для внутренних API
 }
 
 // Config хранит настройки конфигурации приложения.
 type Config struct {
-	Address     string `env:"ADDRESS" json:"server_address"`              // Адрес HTTP-сервера
-	BaseURL     string `env:"BASE_URL" json:"base_url"`                   // Базовый URL сервиса
-	FilePath    string `env:"FILE_STORAGE_PATH" json:"file_storage_path"` // Путь к файлам хранилища
-	DB          string `env:"DATABASE_DSN" json:"database_dsn"`           // Строка подключения к базе данных
-	SecretKey   string `env:"SECRET_KEY" json:"secret_key"`               // Секретный ключ для JWT-токенов
-	EnableHTTPS bool   `env:"ENABLE_HTTPS" json:"enable_https"`           // Включить HTTPS сервер
-	CertFile    string `env:"CERT_FILE" json:"cert_file"`                 // Путь к файлу сертификата
-	KeyFile     string `env:"KEY_FILE" json:"key_file"`                   // Путь к файлу приватного ключа
+	Address       string `env:"ADDRESS" json:"server_address"`              // Адрес HTTP-сервера
+	BaseURL       string `env:"BASE_URL" json:"base_url"`                   // Базовый URL сервиса
+	FilePath      string `env:"FILE_STORAGE_PATH" json:"file_storage_path"` // Путь к файлам хранилища
+	DB            string `env:"DATABASE_DSN" json:"database_dsn"`           // Строка подключения к базе данных
+	SecretKey     string `env:"SECRET_KEY" json:"secret_key"`               // Секретный ключ для JWT-токенов
+	EnableHTTPS   bool   `env:"ENABLE_HTTPS" json:"enable_https"`           // Включить HTTPS сервер
+	CertFile      string `env:"CERT_FILE" json:"cert_file"`                 // Путь к файлу сертификата
+	KeyFile       string `env:"KEY_FILE" json:"key_file"`                   // Путь к файлу приватного ключа
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`       // Доверенная подсеть для внутренних API
 }
 
 // loadJSONConfig загружает конфигурацию из JSON файла.
@@ -81,6 +83,9 @@ func applyJSONConfig(config *Config, jsonConfig JSONConfig) {
 	}
 	if config.DB == "" && jsonConfig.DatabaseDSN != "" {
 		config.DB = jsonConfig.DatabaseDSN
+	}
+	if config.TrustedSubnet == "" && jsonConfig.TrustedSubnet != "" {
+		config.TrustedSubnet = jsonConfig.TrustedSubnet
 	}
 	// Для bool значений применяем только если значение в JSON не false
 	if !config.EnableHTTPS && jsonConfig.EnableHTTPS {
@@ -152,6 +157,7 @@ func GetCLParams() (Config, error) {
 	flag.BoolVar(&config.EnableHTTPS, "s", false, "enable HTTPS server")
 	flag.StringVar(&config.CertFile, "cert", "", "path to certificate file")
 	flag.StringVar(&config.KeyFile, "key", "", "path to private key file")
+	flag.StringVar(&config.TrustedSubnet, "t", "", "trusted subnet for internal API access")
 
 	flag.Parse()
 

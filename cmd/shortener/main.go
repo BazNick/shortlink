@@ -15,6 +15,7 @@ import (
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
 	"github.com/BazNick/shortlink/cmd/middleware/logger"
+	"github.com/BazNick/shortlink/cmd/middleware/trusted"
 	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/handlers"
 	"github.com/BazNick/shortlink/internal/app/storage"
@@ -79,7 +80,10 @@ func main() {
 	router.GET("/api/user/urls", urlHandler.GetUserLinks)
 	router.DELETE("/api/user/urls", urlHandler.DeleteUserLinks)
 
-	// Start server with graceful shutdown
+	internalAPI := router.Group("/api/internal")
+	internalAPI.Use(trusted.TrustedIPMiddleware(conf.TrustedSubnet))
+	internalAPI.GET("/stats", urlHandler.GetStats)
+
 	if err := startServerWithGracefulShutdown(router, conf, storage); err != nil {
 		log.Fatal(err)
 	}

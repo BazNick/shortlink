@@ -221,3 +221,41 @@ func (db *DB) CheckValExists(link string) bool {
 
 	return false
 }
+
+// GetStats возвращает статистику хранилища DB.
+//
+// Возвращает:
+//   - urls: количество сокращённых URL в сервисе
+//   - users: количество пользователей в сервисе
+//   - error: ошибка базы данных, если произошла
+//
+// Функционал:
+//   - Выполняет SQL-запросы для подсчёта количества URL и уникальных пользователей
+//   - Использует COUNT(DISTINCT user_id) для подсчёта уникальных пользователей
+//   - Возвращает статистику или ошибку базы данных
+//
+// Пример:
+//
+//	urls, users, err := db.GetStats()
+//	if err != nil {
+//	    log.Printf("Ошибка получения статистики: %v", err)
+//	} else {
+//	    fmt.Printf("URLs: %d, Users: %d\n", urls, users)
+//	}
+func (db *DB) GetStats() (int, int, error) {
+	ctx := context.Background()
+
+	var urls int
+	err := db.Database.QueryRowContext(ctx, `SELECT COUNT(*) FROM links`).Scan(&urls)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	var users int
+	err = db.Database.QueryRowContext(ctx, `SELECT COUNT(DISTINCT user_id) FROM links`).Scan(&users)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return urls, users, nil
+}
