@@ -44,7 +44,7 @@ func NewHashDict() *HashDict {
 func (hasdDict *HashDict) AddHash(hash, link, userID string) (string, error) {
 	hasdDict.Dict[hash] = link
 	hasdDict.RevDict[link] = hash
-	if userID != "" {
+	if userID != "" && hasdDict.Users != nil {
 		hasdDict.Users[userID] = true
 	}
 	return "", nil
@@ -94,6 +94,9 @@ func (hasdDict *HashDict) CheckValExists(link string) bool {
 //	fmt.Printf("URLs: %d, Users: %d\n", urls, users)
 func (hasdDict *HashDict) GetStats() (int, int, error) {
 	urls := len(hasdDict.Dict)
-	users := len(hasdDict.Users)
+	users := 0
+	if hasdDict.Users != nil {
+		users = len(hasdDict.Users)
+	}
 	return urls, users, nil
 }
