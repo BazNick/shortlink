@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/BazNick/shortlink/internal/app/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -47,18 +48,20 @@ func (handler *URLHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	urls, users, err := handler.storage.GetStats()
+	// Используем сервис для получения статистики
+	req := service.GetStatsRequest{}
+	resp, err := handler.urlService.GetStats(c.Request.Context(), req)
 	if err != nil {
 		http.Error(c.Writer, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	response := StatsResponse{
-		URLs:  urls,
-		Users: users,
+		URLs:  resp.URLs,
+		Users: resp.Users,
 	}
 
-	resp, err := json.Marshal(response)
+	jsonResp, err := json.Marshal(response)
 	if err != nil {
 		http.Error(c.Writer, "Internal server error", http.StatusInternalServerError)
 		return
@@ -66,5 +69,5 @@ func (handler *URLHandler) GetStats(c *gin.Context) {
 
 	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Write(resp)
+	c.Writer.Write(jsonResp)
 }

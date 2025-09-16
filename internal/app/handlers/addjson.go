@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
-	"github.com/BazNick/shortlink/internal/app/entities"
 	"github.com/BazNick/shortlink/internal/app/functions"
+	"github.com/BazNick/shortlink/internal/app/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -80,36 +80,28 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 
 	baseURL := functions.SchemeAndHost(c.Request)
 
-	// Check for conflicts in non-database storage (HashDict, FileStore)
-	if _, ok := handler.storage.(*entities.DB); !ok {
-		alreadyExst := handler.storage.CheckValExists(link.Link)
-		if alreadyExst {
-			existingShortURL := handler.getExistingShortURL(link.Link)
-			if existingShortURL != "" {
-				handler.sendConflictResponse(c, baseURL+"/"+existingShortURL)
-				return
-			}
-			// If URL exists but we can't find the short URL, continue with creation
-		}
+	// Используем сервис для создания короткой ссылки
+	req := service.CreateShortURLRequest{
+		URL:    link.Link,
+		UserID: user,
 	}
-
-	var (
-		randStr  = functions.RandSeq(8)
-		hashLink = baseURL + "/" + randStr
-	)
-
-	shortURL, err := handler.storage.AddHash(randStr, link.Link, user)
+	resp, err := handler.urlService.CreateShortURL(c.Request.Context(), req)
 	if err != nil {
-		if err == apperr.ErrValAlreadyExists {
-			handler.sendConflictResponse(c, baseURL+"/"+shortURL)
-			return
-		}
-		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		http.Error(c.Writer, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	successResponse.Result = hashLink
-	resp, err := json.Marshal(successResponse)
+	// Формируем полный URL
+	shortURL := baseURL + "/" + resp.ShortURL
+
+	// Если URL уже существует, возвращаем 409 Conflict
+	if resp.AlreadyExists {
+		handler.sendConflictResponse(c, shortURL)
+		return
+	}
+
+	successResponse.Result = shortURL
+	jsonResp, err := json.Marshal(successResponse)
 	if err != nil {
 		http.Error(c.Writer, err.Error(), http.StatusBadRequest)
 		return
@@ -117,14 +109,7 @@ func (handler *URLHandler) PostJSONLink(c *gin.Context) {
 
 	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(http.StatusCreated)
-	c.Writer.Write(resp)
-}
-
-func (handler *URLHandler) getExistingShortURL(originalURL string) string {
-	if hashDict, ok := handler.storage.(*entities.HashDict); ok {
-		return hashDict.RevDict[originalURL]
-	}
-	return ""
+	c.Writer.Write(jsonResp)
 }
 
 func (handler *URLHandler) sendConflictResponse(c *gin.Context, shortURL string) {

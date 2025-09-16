@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package shortlink;
+
+option go_package = "github.com/BazNick/shortlink/proto";
+
+// ShortLinkService provides URL shortening functionality via gRPC
+service ShortLinkService {
+  // CreateShortURL creates a short URL from a long URL
+  rpc CreateShortURL(CreateShortURLRequest) returns (CreateShortURLResponse);
+  
+  // GetOriginalURL retrieves the original URL from a short URL
+  rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+  
+  // CreateShortURLBatch creates multiple short URLs in a single request
+  rpc CreateShortURLBatch(CreateShortURLBatchRequest) returns (CreateShortURLBatchResponse);
+  
+  // GetUserURLs retrieves all URLs created by a user
+  rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
+  
+  // DeleteUserURLs deletes multiple URLs created by a user
+  rpc DeleteUserURLs(DeleteUserURLsRequest) returns (DeleteUserURLsResponse);
+  
+  // Ping checks the health of the service
+  rpc Ping(PingRequest) returns (PingResponse);
+  
+  // GetStats returns service statistics (internal API)
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+// Request/Response messages for CreateShortURL
+message CreateShortURLRequest {
+  string url = 1; // The original URL to shorten
+  string user_id = 2; // User ID (optional, can be empty)
+}
+
+message CreateShortURLResponse {
+  string short_url = 1; // The generated short URL
+  bool already_exists = 2; // True if URL was already shortened
+}
+
+// Request/Response messages for GetOriginalURL
+message GetOriginalURLRequest {
+  string short_url = 1; // The short URL to resolve
+}
+
+message GetOriginalURLResponse {
+  string original_url = 1; // The original URL
+  bool found = 2; // True if URL was found
+}
+
+// Request/Response messages for CreateShortURLBatch
+message CreateShortURLBatchRequest {
+  repeated BatchURLItem urls = 1; // List of URLs to shorten
+  string user_id = 2; // User ID
+}
+
+message CreateShortURLBatchResponse {
+  repeated BatchURLResult results = 1; // Results for each URL
+}
+
+message BatchURLItem {
+  string correlation_id = 1; // Unique identifier for this item
+  string original_url = 2; // The original URL to shorten
+}
+
+message BatchURLResult {
+  string correlation_id = 1; // Matches the correlation_id from request
+  string short_url = 2; // The generated short URL
+  bool already_exists = 3; // True if URL was already shortened
+}
+
+// Request/Response messages for GetUserURLs
+message GetUserURLsRequest {
+  string user_id = 1; // User ID
+}
+
+message GetUserURLsResponse {
+  repeated UserURLItem urls = 1; // List of user's URLs
+}
+
+message UserURLItem {
+  string short_url = 1; // The short URL
+  string original_url = 2; // The original URL
+}
+
+// Request/Response messages for DeleteUserURLs
+message DeleteUserURLsRequest {
+  repeated string short_urls = 1; // List of short URLs to delete
+  string user_id = 2; // User ID
+}
+
+message DeleteUserURLsResponse {
+  bool success = 1; // True if deletion was successful
+}
+
+// Request/Response messages for Ping
+message PingRequest {
+  // Empty request
+}
+
+message PingResponse {
+  bool healthy = 1; // True if service is healthy
+  string message = 2; // Optional status message
+}
+
+// Request/Response messages for GetStats (internal API)
+message GetStatsRequest {
+  // Empty request
+}
+
+message GetStatsResponse {
+  int32 urls = 1; // Number of shortened URLs
+  int32 users = 2; // Number of users
+}
+

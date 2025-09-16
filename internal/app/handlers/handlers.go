@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/BazNick/shortlink/internal/app/entities"
+	"github.com/BazNick/shortlink/internal/app/service"
 	"github.com/BazNick/shortlink/internal/app/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -20,6 +21,7 @@ type (
 	// URLHandler обрабатывает HTTP-запросы для операций сокращения ссылок.
 	// Предоставляет методы для создания коротких ссылок и перенаправления на оригинальные.
 	URLHandler struct {
+		urlService    *service.URLService           // Сервис для бизнес-логики
 		storage       storage.Storage               // Интерфейс хранения для сопоставления ссылок
 		path          string                        // Путь к файлу для файлового хранилища
 		dbPath        string                        // Строка подключения базы данных
@@ -72,7 +74,11 @@ func NewURLHandler(
 		workerManager.StartDeleteWorkers(runtime.NumCPU())
 	}
 
+	// Создаем сервис для бизнес-логики
+	urlService := service.NewURLService(storage, workerManager)
+
 	handler := &URLHandler{
+		urlService:    urlService,
 		storage:       storage,
 		path:          filePath,
 		dbPath:        dbPath,

@@ -17,6 +17,8 @@ type JSONConfig struct {
 	DatabaseDSN     string `json:"database_dsn"`      // Строка подключения к базе данных
 	EnableHTTPS     bool   `json:"enable_https"`      // Включить HTTPS сервер
 	TrustedSubnet   string `json:"trusted_subnet"`    // Доверенная подсеть для внутренних API
+	GRPCAddress     string `json:"grpc_address"`      // Адрес gRPC сервера
+	EnableGRPC      bool   `json:"enable_grpc"`       // Включить gRPC сервер
 }
 
 // Config хранит настройки конфигурации приложения.
@@ -30,6 +32,8 @@ type Config struct {
 	CertFile      string `env:"CERT_FILE" json:"cert_file"`                 // Путь к файлу сертификата
 	KeyFile       string `env:"KEY_FILE" json:"key_file"`                   // Путь к файлу приватного ключа
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`       // Доверенная подсеть для внутренних API
+	GRPCAddress   string `env:"GRPC_ADDRESS" json:"grpc_address"`           // Адрес gRPC сервера
+	EnableGRPC    bool   `env:"ENABLE_GRPC" json:"enable_grpc"`             // Включить gRPC сервер
 }
 
 // loadJSONConfig загружает конфигурацию из JSON файла.
@@ -87,9 +91,15 @@ func applyJSONConfig(config *Config, jsonConfig JSONConfig) {
 	if config.TrustedSubnet == "" && jsonConfig.TrustedSubnet != "" {
 		config.TrustedSubnet = jsonConfig.TrustedSubnet
 	}
+	if config.GRPCAddress == "" && jsonConfig.GRPCAddress != "" {
+		config.GRPCAddress = jsonConfig.GRPCAddress
+	}
 	// Для bool значений применяем только если значение в JSON не false
 	if !config.EnableHTTPS && jsonConfig.EnableHTTPS {
 		config.EnableHTTPS = jsonConfig.EnableHTTPS
+	}
+	if !config.EnableGRPC && jsonConfig.EnableGRPC {
+		config.EnableGRPC = jsonConfig.EnableGRPC
 	}
 }
 
@@ -158,6 +168,8 @@ func GetCLParams() (Config, error) {
 	flag.StringVar(&config.CertFile, "cert", "", "path to certificate file")
 	flag.StringVar(&config.KeyFile, "key", "", "path to private key file")
 	flag.StringVar(&config.TrustedSubnet, "t", "", "trusted subnet for internal API access")
+	flag.StringVar(&config.GRPCAddress, "grpc", "", "gRPC server address")
+	flag.BoolVar(&config.EnableGRPC, "grpc-enable", false, "enable gRPC server")
 
 	flag.Parse()
 
@@ -181,6 +193,9 @@ func GetCLParams() (Config, error) {
 	}
 	if config.BaseURL == "" {
 		config.BaseURL = "http://localhost:8080"
+	}
+	if config.GRPCAddress == "" {
+		config.GRPCAddress = "localhost:9090"
 	}
 
 	return config, nil
