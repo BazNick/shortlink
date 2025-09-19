@@ -11,6 +11,7 @@ import (
 type FileLinks struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	UserID      string `json:"user_id"`
 }
 
 // FileStore - реализацию хранилища на основе файла для сопоставления URL.
@@ -19,6 +20,7 @@ type FileStore struct {
 	FileStorage *os.File
 	mu          sync.RWMutex
 	cache       map[string]string
+	users       map[string]bool
 }
 
 // NewFileStore создаёт новый экземпляр хранилища на основе файла.
@@ -43,6 +45,7 @@ func NewFileStore(path string) *FileStore {
 	fs := &FileStore{
 		Path:  path,
 		cache: make(map[string]string),
+		users: make(map[string]bool),
 	}
 
 	fs.loadCache()
@@ -64,6 +67,9 @@ func (f *FileStore) loadCache() {
 		var res FileLinks
 		if err := json.Unmarshal([]byte(scanner.Text()), &res); err == nil {
 			f.cache[res.ShortURL] = res.OriginalURL
+			if res.UserID != "" {
+				f.users[res.UserID] = true
+			}
 		}
 	}
 }
@@ -101,6 +107,9 @@ func (f *FileStore) AddHash(hash, link, userID string) (string, error) {
 	}
 
 	f.cache[hash] = link
+	if userID != "" {
+		f.users[userID] = true
+	}
 
 	file, err := os.OpenFile(f.Path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -111,6 +120,7 @@ func (f *FileStore) AddHash(hash, link, userID string) (string, error) {
 	data, err := json.Marshal(FileLinks{
 		ShortURL:    hash,
 		OriginalURL: link,
+		UserID:      userID,
 	})
 	if err != nil {
 		return "", err
@@ -188,4 +198,24 @@ func (f *FileStore) CheckValExists(link string) bool {
 	}
 
 	return false
+}
+
+// GetStats возвращает статистику хранилища FileStore.
+//
+// Возвращает:
+//   - urls: количество сокращённых URL в сервисе
+//   - users: количество пользователей в сервисе
+//   - error: всегда nil для FileStore
+//
+// Пример:
+//
+//	urls, users, err := store.GetStats()
+//	fmt.Printf("URLs: %d, Users: %d\n", urls, users)
+func (f *FileStore) GetStats() (int, int, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	urls := len(f.cache)
+	users := len(f.users)
+	return urls, users, nil
 }

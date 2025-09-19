@@ -24,6 +24,7 @@ func TestCheckValExists(t *testing.T) {
 					"value1": "key1",
 					"value2": "key2",
 				},
+				Users: map[string]bool{},
 			},
 			link: "value2",
 			want: true,
@@ -39,6 +40,7 @@ func TestCheckValExists(t *testing.T) {
 					"value1": "key1",
 					"value2": "key2",
 				},
+				Users: map[string]bool{},
 			},
 			link: "nonexistent_value",
 			want: false,
@@ -48,6 +50,7 @@ func TestCheckValExists(t *testing.T) {
 			hd: HashDict{
 				Dict:    map[string]string{},
 				RevDict: map[string]string{},
+				Users:   map[string]bool{},
 			},
 			link: "any_value",
 			want: false,
@@ -75,6 +78,7 @@ func TestHashDict_AddHash(t *testing.T) {
 			h: HashDict{
 				Dict:    map[string]string{},
 				RevDict: map[string]string{},
+				Users:   map[string]bool{},
 			},
 			hash:   "new_key",
 			link:   "new_value",
@@ -89,6 +93,7 @@ func TestHashDict_AddHash(t *testing.T) {
 				RevDict: map[string]string{
 					"existing_value": "existing_key",
 				},
+				Users: map[string]bool{},
 			},
 			hash:   "another_new_key",
 			link:   "another_new_value",
@@ -103,6 +108,7 @@ func TestHashDict_AddHash(t *testing.T) {
 				RevDict: map[string]string{
 					"old_value": "existing_key",
 				},
+				Users: map[string]bool{},
 			},
 			hash:   "existing_key",
 			link:   "updated_value",
@@ -137,6 +143,7 @@ func TestHashDict_GetHash(t *testing.T) {
 					"value1": "key1",
 					"value2": "key2",
 				},
+				Users: map[string]bool{},
 			},
 			hash: "key1",
 			want: "value1",
@@ -152,6 +159,7 @@ func TestHashDict_GetHash(t *testing.T) {
 					"value1": "key1",
 					"value2": "key2",
 				},
+				Users: map[string]bool{},
 			},
 			hash: "non_existing_key",
 			want: "",
@@ -161,6 +169,7 @@ func TestHashDict_GetHash(t *testing.T) {
 			h: HashDict{
 				Dict:    map[string]string{},
 				RevDict: map[string]string{},
+				Users:   map[string]bool{},
 			},
 			hash: "any_key",
 			want: "",

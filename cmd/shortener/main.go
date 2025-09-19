@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -15,7 +16,9 @@ import (
 	"github.com/BazNick/shortlink/cmd/middleware/auth"
 	"github.com/BazNick/shortlink/cmd/middleware/compress"
 	"github.com/BazNick/shortlink/cmd/middleware/logger"
+	"github.com/BazNick/shortlink/cmd/middleware/trusted"
 	"github.com/BazNick/shortlink/internal/app/entities"
+	"github.com/BazNick/shortlink/internal/app/grpc"
 	"github.com/BazNick/shortlink/internal/app/handlers"
 	"github.com/BazNick/shortlink/internal/app/storage"
 	"github.com/gin-contrib/pprof"
@@ -79,8 +82,11 @@ func main() {
 	router.GET("/api/user/urls", urlHandler.GetUserLinks)
 	router.DELETE("/api/user/urls", urlHandler.DeleteUserLinks)
 
-	// Start server with graceful shutdown
-	if err := startServerWithGracefulShutdown(router, conf, storage); err != nil {
+	internalAPI := router.Group("/api/internal")
+	internalAPI.Use(trusted.TrustedIPMiddleware(conf.TrustedSubnet))
+	internalAPI.GET("/stats", urlHandler.GetStats)
+
+	if err := startServersWithGracefulShutdown(router, conf, storage); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -173,6 +179,60 @@ func startServerWithGracefulShutdown(router *gin.Engine, conf config.Config, sto
 	}
 
 	fmt.Println("Server shutdown completed gracefully.")
+	return nil
+}
+
+// startServersWithGracefulShutdown запускает HTTP/HTTPS и gRPC серверы с поддержкой graceful shutdown.
+// Серверы корректно завершают работу при получении сигналов SIGTERM, SIGINT, SIGQUIT.
+//
+// Параметры:
+//   - router: настроенный Gin роутер
+//   - conf: конфигурация приложения
+//   - storage: хранилище данных для сохранения при завершении
+//
+// Возвращает:
+//   - error: ошибку, если не удалось запустить серверы
+func startServersWithGracefulShutdown(router *gin.Engine, conf config.Config, storage storage.Storage) error {
+	var grpcServer *grpc.Server
+
+	// Создаем gRPC сервер если он включен
+	if conf.EnableGRPC {
+		// Получаем worker manager для gRPC сервера
+		var workerManager *entities.DeleteWorkerManager
+		if dbStorage, ok := storage.(*entities.DB); ok {
+			workerManager = entities.NewDeleteWorkerManager(dbStorage.Database, 100)
+			workerManager.StartDeleteWorkers(runtime.NumCPU())
+		}
+
+		grpcServer = grpc.NewServer(storage, workerManager)
+		fmt.Printf("Starting gRPC server on %s\n", conf.GRPCAddress)
+	}
+
+	// Запускаем gRPC сервер в отдельной горутине если он включен
+	var grpcErr chan error
+	if grpcServer != nil {
+		grpcErr = make(chan error, 1)
+		go func() {
+			if err := grpcServer.Start(conf.GRPCAddress); err != nil {
+				grpcErr <- err
+			}
+		}()
+	}
+
+	// Запускаем HTTP сервер
+	if err := startServerWithGracefulShutdown(router, conf, storage); err != nil {
+		// Останавливаем gRPC сервер если HTTP сервер не запустился
+		if grpcServer != nil {
+			grpcServer.Stop()
+		}
+		return err
+	}
+
+	// Останавливаем gRPC сервер при завершении HTTP сервера
+	if grpcServer != nil {
+		grpcServer.Stop()
+	}
+
 	return nil
 }
 

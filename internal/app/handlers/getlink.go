@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/BazNick/shortlink/internal/app/apperr"
+	"github.com/BazNick/shortlink/internal/app/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,18 +31,23 @@ func (handler *URLHandler) GetLink(c *gin.Context) {
 		return
 	}
 
-	var (
-		id     = c.Param("id")               // извлекаем id короткого URL из маршрута
-		pageID = handler.storage.GetHash(id) // получаем оригинальную ссылку по указанному хэшу
-	)
+	id := c.Param("id") // извлекаем id короткого URL из маршрута
 
-	if pageID == "" { // если оригинальная ссылка не найдена
+	// Используем сервис для получения оригинальной ссылки
+	req := service.GetOriginalURLRequest{ShortURL: id}
+	resp, err := handler.urlService.GetOriginalURL(c.Request.Context(), req)
+	if err != nil {
+		http.Error(c.Writer, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !resp.Found { // если оригинальная ссылка не найдена
 		http.Error(c.Writer, apperr.ErrLinkNotFound.Error(), http.StatusGone)
 		return
 	}
 
 	// устанавливаем заголовки для временной переадресации
-	c.Writer.Header().Set("Location", pageID)
+	c.Writer.Header().Set("Location", resp.OriginalURL)
 	c.Writer.Header().Set("Content-Type", "text/html")
 	c.Writer.WriteHeader(http.StatusTemporaryRedirect)
 }
